@@ -1,0 +1,484 @@
+document: DATABASE
+package: Technical Design
+source_of_truth: PostgreSQL
+
+runtime_storage:
+  redis:
+    introduced_in: v1.5
+    source_of_truth: false
+    purpose:
+      - realtime_state
+      - presence
+      - locks
+      - cache
+      - rate_limiting
+
+enums:
+  user_role:
+    - developer
+    - manager
+    - admin
+
+  game_stage:
+    - start_date
+    - playable
+    - alpha
+    - beta
+    - gold
+    - master
+    - eta_release_exclusive
+    - eta_release_com
+
+  daily_note_source:
+    - manual
+    - transcript
+
+  change_request_status:
+    - pending
+    - approved
+    - rejected
+
+  daily_session_status:
+    - active
+    - finished
+    - cancelled
+
+  game_status:
+    - planned
+    - active
+    - paused
+    - cancelled
+    - completed
+
+tables:
+  users:
+    implemented_in: v1
+    purpose: Stores authenticated application users.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      email:
+        type: varchar
+        unique: true
+        required: true
+      name:
+        type: varchar
+        required: true
+      role:
+        type: user_role
+        required: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+    rules:
+      - Developers can be assigned to games.
+      - Managers can also be assigned to games.
+      - Admins can also be assigned to games.
+      - Role controls permissions, not game ownership.
+    used_by:
+      - Today's Work
+      - Game Page
+      - Change Requests
+      - Daily Notes
+      - Daily Mode
+
+  math_owners:
+    implemented_in: v1
+    purpose: Stores math contacts assigned to games.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      name:
+        type: varchar
+        required: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+    rules:
+      - Math owners are not application users.
+      - No email is required.
+      - No role is required.
+      - Math owners do not log in.
+    used_by:
+      - Game Page
+      - Simple Radar
+
+  games:
+    implemented_in: v1
+    purpose: Stores main game/project records.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      title:
+        type: varchar
+        required: true
+      client:
+        type: varchar
+        nullable: true
+      developer_id:
+        type: uuid
+        references: users.id
+        required: true
+      math_owner_id:
+        type: uuid
+        references: math_owners.id
+        nullable: true
+      current_stage:
+        type: game_stage
+        nullable: true
+      status:
+        type: game_status
+        required: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+    relations:
+      developer_id: users.id
+      math_owner_id: math_owners.id
+    protected_fields:
+      - title
+      - client
+      - developer_id
+      - math_owner_id
+      - current_stage
+      - status
+    rules:
+      - A game has one primary assigned developer.
+      - Assigned developer may have role developer, manager, or admin.
+      - Protected fields can be edited directly only by manager/admin.
+      - Developers suggest protected changes through Change Requests.
+      - Planned games may have no current_stage.
+      - Active games must have current_stage.
+      - Today's Work includes only active games.
+      - Daily Mode includes only active games.
+      - Simple Radar displays all games regardless of status.
+    used_by:
+      - Today's Work
+      - Game Page
+      - Simple Radar
+      - Daily Mode
+
+  game_stage_dates:
+    implemented_in: v1
+    purpose: Stores predefined target dates for every game stage.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      game_id:
+        type: uuid
+        references: games.id
+        required: true
+      stage:
+        type: game_stage
+        required: true
+      target_date:
+        type: date
+        nullable: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+    relations:
+      game_id: games.id
+    rules:
+      - Stage dates are usually planned far in advance.
+      - Game Page must show all stage dates.
+      - Simple Radar should show compact stage health and allow expanding full dates.
+      - Direct edits require manager/admin.
+      - Developers use Change Requests.
+    used_by:
+      - Game Page
+      - Simple Radar
+      - Daily Mode
+
+  daily_notes:
+    implemented_in: v1
+    purpose: Stores daily progress updates for games.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      game_id:
+        type: uuid
+        references: games.id
+        required: true
+      author_id:
+        type: uuid
+        references: users.id
+        required: true
+      date:
+        type: date
+        required: true
+      summary:
+        type: text
+        required: true
+      needs_lead_attention:
+        type: boolean
+        default: false
+      source:
+        type: daily_note_source
+        required: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+    relations:
+      game_id: games.id
+      author_id: users.id
+    rules:
+      - Developers can create/edit their own notes for games they are assigned to.
+      - Managers/Admins can create/edit notes for any game.
+      - During Daily Mode, Daily Host may edit notes but does not receive manager permissions.
+      - Blockers are written inside summary in MVP.
+    used_by:
+      - Today's Work
+      - Game Page
+      - Daily Mode
+
+  change_requests:
+    implemented_in: v1
+    purpose: Stores suggested project changes that require approval.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      game_id:
+        type: uuid
+        references: games.id
+        required: true
+      requested_by:
+        type: uuid
+        references: users.id
+        required: true
+      field_name:
+        type: varchar
+        required: true
+      old_value:
+        type: text
+        nullable: true
+      new_value:
+        type: text
+        required: true
+      status:
+        type: change_request_status
+        required: true
+      reviewed_by:
+        type: uuid
+        references: users.id
+        nullable: true
+      reviewed_at:
+        type: timestamp
+        nullable: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+    relations:
+      game_id: games.id
+      requested_by: users.id
+      reviewed_by: users.id
+    rules:
+      - Developers create Change Requests for protected fields.
+      - Managers/Admins approve or reject Change Requests.
+      - Approved requests are applied automatically.
+      - Pending requests should be visible on Game Page and optionally Simple Radar.
+    used_by:
+      - Game Page
+      - Today's Work review
+      - Daily Mode
+
+  stage_history:
+    implemented_in: v1
+    purpose: Stores transitions between game stages.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      game_id:
+        type: uuid
+        references: games.id
+        required: true
+      from_stage:
+        type: game_stage
+        nullable: true
+      to_stage:
+        type: game_stage
+        required: true
+      changed_by:
+        type: uuid
+        references: users.id
+        required: true
+      created_at:
+        type: timestamp
+        required: true
+    relations:
+      game_id: games.id
+      changed_by: users.id
+    rules:
+      - Created when current_stage changes.
+    used_by:
+      - Game Page
+      - Future Timeline
+
+  daily_sessions:
+    implemented_in: v1.5
+    purpose: Stores facts about conducted Daily sessions.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      host_user_id:
+        type: uuid
+        references: users.id
+        required: true
+      date:
+        type: date
+        required: true
+      status:
+        type: daily_session_status
+        required: true
+      started_at:
+        type: timestamp
+        required: true
+      finished_at:
+        type: timestamp
+        nullable: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+    relations:
+      host_user_id: users.id
+    rules:
+      - Daily Host may be any user.
+      - Daily Host controls the session.
+      - Daily Host does not receive manager/admin permissions.
+      - Live current game state is stored in Redis, not SQL.
+    used_by:
+      - Daily Mode
+      - Future Timeline
+
+  audit_logs:
+    implemented_in: v1.5
+    purpose: Stores important project changes.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      user_id:
+        type: uuid
+        references: users.id
+        required: true
+      entity_type:
+        type: varchar
+        required: true
+      entity_id:
+        type: uuid
+        required: true
+      action:
+        type: varchar
+        required: true
+      before:
+        type: jsonb
+        nullable: true
+      after:
+        type: jsonb
+        nullable: true
+      created_at:
+        type: timestamp
+        required: true
+    relations:
+      user_id: users.id
+    rules:
+      - Audit logs are introduced in v1.5.
+      - Audit logs do not replace permission checks.
+      - Timeline can be built from audit logs later.
+    used_by:
+      - Timeline
+      - Debugging
+      - Accountability
+
+  pull_requests:
+    implemented_in: v2
+    purpose: Stores GitHub Pull Requests related to games and stages.
+    columns:
+      id:
+        type: uuid
+        primary_key: true
+      game_id:
+        type: uuid
+        references: games.id
+        required: true
+      stage:
+        type: game_stage
+        nullable: true
+      github_url:
+        type: text
+        required: true
+      repo:
+        type: varchar
+        nullable: true
+      pr_number:
+        type: integer
+        nullable: true
+      title:
+        type: varchar
+        nullable: true
+      status:
+        type: varchar
+        nullable: true
+      author:
+        type: varchar
+        nullable: true
+      merged_at:
+        type: timestamp
+        nullable: true
+      created_at:
+        type: timestamp
+        required: true
+      updated_at:
+        type: timestamp
+        required: true
+      summary:
+        type: text
+        nullable: true
+    relations:
+      game_id: games.id
+    rules:
+      - GitHub is a block inside Game Page.
+      - GitHub is not a standalone screen.
+      - Developers may link Pull Requests to games they are assigned to.
+      - Manager/admin may link Pull Requests to any game.
+      - PR summaries are optional future enhancement.
+    used_by:
+      - Game Page
+
+future_tables:
+  implemented_in: v3
+  status: postponed
+  do_not_implement_in_mvp: true
+  possible_tables:
+    - transcripts
+    - ai_summaries
+    - embeddings

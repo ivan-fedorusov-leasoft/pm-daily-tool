@@ -1,0 +1,420 @@
+document: API
+package: Technical Design
+
+transport:
+  allowed:
+    - Next.js Server Actions
+    - API Routes
+  rule: The contract matters more than the transport.
+
+operations:
+  getCurrentUser:
+    category: auth
+    implemented_in: v1
+    roles:
+      - authenticated_user
+    used_by:
+      - all protected screens
+      - all mutations
+    returns:
+      - authenticated user
+    rules:
+      - Unauthenticated users cannot access the app.
+      - Domain restrictions may be applied later.
+
+  listUsers:
+    category: users
+    implemented_in: v1
+    roles:
+      - manager
+      - admin
+    used_by:
+      - assignment dropdowns
+      - admin tools
+    reads:
+      - users
+
+  listMyGames:
+    category: games
+    implemented_in: v1
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Today's Work
+    reads:
+      - games
+      - game_stage_dates
+    returns:
+      - active games assigned to current user
+    rules:
+      - Only games with status active are returned.
+      - Planned, paused, cancelled, and completed games are excluded.
+
+  listAllGames:
+    category: games
+    implemented_in: v1
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Simple Radar
+    reads:
+      - games
+      - game_stage_dates
+    returns:
+      - all games regardless of status
+
+  getGameDetails:
+    category: games
+    implemented_in: v1
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+      - Daily Mode
+    reads:
+      - games
+      - game_stage_dates
+      - daily_notes
+      - change_requests
+      - stage_history
+    returns:
+      - game
+      - stage dates
+      - daily notes
+      - pending change requests
+      - stage history
+
+  updateGame:
+    category: games
+    implemented_in: v1
+    roles:
+      - manager
+      - admin
+    used_by:
+      - Game Page
+    writes:
+      - games
+    rules:
+      - Protected data only.
+      - Creates audit log in v1.5.
+
+  updateStageDate:
+    category: stage_dates
+    implemented_in: v1
+    roles:
+      - manager
+      - admin
+    used_by:
+      - Game Page
+      - Daily Mode
+    writes:
+      - game_stage_dates
+    rules:
+      - Direct edit.
+      - Creates audit log in v1.5.
+
+  changeCurrentStage:
+    category: stage_dates
+    implemented_in: v1
+    roles:
+      - manager
+      - admin
+    used_by:
+      - Game Page
+      - Daily Mode
+    writes:
+      - games
+      - stage_history
+    rules:
+      - Updates games.current_stage.
+      - Creates stage_history record.
+      - Creates audit log in v1.5.
+
+  upsertDailyNote:
+    category: daily_notes
+    implemented_in: v1
+    roles:
+      - developer
+      - manager
+      - admin
+      - assigned_daily_host_during_active_session
+    used_by:
+      - Today's Work
+      - Game Page
+      - Daily Mode
+    reads:
+      - games
+      - daily_notes
+    writes:
+      - daily_notes
+    rules:
+      - Developer can edit own note for assigned active games.
+      - Manager/admin can edit notes for any game.
+      - Daily Host can edit Daily Notes during the active session.
+      - Daily Host does not receive protected data permissions.
+
+  listDailyNotesByGame:
+    category: daily_notes
+    implemented_in: v1
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+    reads:
+      - daily_notes
+
+  listTodayNotes:
+    category: daily_notes
+    implemented_in: v1
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Today's Work
+      - Manager review
+    reads:
+      - games
+      - daily_notes
+    rules:
+      - Developer sees notes for own assigned active games.
+      - Manager/admin can see all notes.
+
+  createChangeRequest:
+    category: change_requests
+    implemented_in: v1
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+      - Daily Mode
+    writes:
+      - change_requests
+    rules:
+      - Used when user cannot or should not directly edit protected data.
+      - Pending request becomes visible on Game Page.
+
+  listPendingChangeRequests:
+    category: change_requests
+    implemented_in: v1
+    roles:
+      - manager
+      - admin
+    used_by:
+      - Manager review
+      - Game Page
+    reads:
+      - change_requests
+
+  approveChangeRequest:
+    category: change_requests
+    implemented_in: v1
+    roles:
+      - manager
+      - admin
+    used_by:
+      - Manager review
+      - Game Page
+      - Daily Mode
+    reads:
+      - change_requests
+    writes:
+      - change_requests
+      - target_entity
+    rules:
+      - Applies new value to target field.
+      - Marks request as approved.
+      - Sets reviewed_by and reviewed_at.
+      - Creates audit log in v1.5.
+
+  rejectChangeRequest:
+    category: change_requests
+    implemented_in: v1
+    roles:
+      - manager
+      - admin
+    used_by:
+      - Manager review
+      - Game Page
+      - Daily Mode
+    writes:
+      - change_requests
+    rules:
+      - Marks request as rejected.
+      - Sets reviewed_by and reviewed_at.
+
+  startDailySession:
+    category: daily_sessions
+    implemented_in: v1.5
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Daily Mode
+    writes:
+      - daily_sessions
+      - redis_active_session_state
+    rules:
+      - Any authenticated user may start a Daily session.
+      - The user who starts the Daily session automatically becomes Daily Host.
+      - No manager/admin approval is required to start Daily.
+      - Creates daily_sessions record.
+      - Sets daily_sessions.host_user_id to current user.
+      - Writes active session state to Redis.
+      - Broadcasts daily_started event.
+      - Starting Daily does not grant manager/admin permissions.
+
+  continueDailySession:
+    category: daily_sessions
+    implemented_in: v1.5
+    roles:
+      - manager
+      - admin
+      - assigned_daily_host
+    used_by:
+      - Daily Mode
+    reads:
+      - redis_active_session_state
+    rules:
+      - Reads active session from Redis.
+
+  setCurrentDailyGame:
+    category: daily_sessions
+    implemented_in: v1.5
+    roles:
+      - manager
+      - admin
+      - assigned_daily_host
+    used_by:
+      - Daily Mode
+    writes:
+      - redis_current_daily_game
+    rules:
+      - Updates current game in Redis.
+      - Broadcasts daily_game_changed event.
+
+  finishDailySession:
+    category: daily_sessions
+    implemented_in: v1.5
+    roles:
+      - manager
+      - admin
+      - assigned_daily_host
+    used_by:
+      - Daily Mode
+    writes:
+      - daily_sessions
+      - redis_active_session_state
+    rules:
+      - Updates daily_sessions.status.
+      - Removes active session from Redis.
+      - Broadcasts daily_finished event.
+
+  updatePresence:
+    category: presence_locks
+    implemented_in: v1.5
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+      - Daily Mode
+    writes:
+      - redis_presence_state
+    rules:
+      - Writes temporary presence state to Redis.
+      - Expires automatically.
+
+  acquireEditLock:
+    category: presence_locks
+    implemented_in: v1.5
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+    writes:
+      - redis_edit_lock
+    rules:
+      - Writes temporary lock to Redis.
+      - Lock does not grant permissions.
+
+  releaseEditLock:
+    category: presence_locks
+    implemented_in: v1.5
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+    writes:
+      - redis_edit_lock
+
+  listPullRequestsByGame:
+    category: pull_requests
+    implemented_in: v2
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+    reads:
+      - pull_requests
+
+  createPullRequestLink:
+    category: pull_requests
+    implemented_in: v2
+    roles:
+      - developer
+      - manager
+      - admin
+    used_by:
+      - Game Page
+    writes:
+      - pull_requests
+    rules:
+      - Developers may link Pull Requests to games they are assigned to.
+      - Manager/admin may link Pull Requests to any game.
+      - Simple manual linking is enough at first.
+      - Linking a Pull Request does not require approval.
+
+  githubWebhook:
+    category: pull_requests
+    implemented_in: v2
+    roles:
+      - system
+    used_by:
+      - GitHub
+    writes:
+      - pull_requests
+      - bullmq_jobs
+    rules:
+      - Validate webhook.
+      - Save raw event if needed.
+      - Enqueue BullMQ job.
+      - Return quickly.
+
+future_operations:
+  implemented_in: v3
+  status: postponed
+  do_not_implement_in_mvp: true
+  operations:
+    - ai_transcript_parsing
+    - ai_summaries
+    - semantic_search
+    - embeddings_generation
