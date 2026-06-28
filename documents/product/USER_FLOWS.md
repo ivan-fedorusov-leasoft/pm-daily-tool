@@ -4,6 +4,10 @@
 
 # USER FLOWS
 
+## Login (reused)
+
+Login is `gc-pm-automation`'s existing Google sign-in, gated to `gamingcorps.com` / `leasoft.org`. Daily Tool adds no separate login screen, no separate onboarding step — any onboarded `gc-pm-automation` Profile can open Daily Tool immediately.
+
 ## Developer
 
 ### Daily Update
@@ -12,7 +16,7 @@ Today's Work shows only active games assigned to the current user.
 
 Flow:
 
-Login → Today's Work → Write Daily Notes → Mark Team Lead Attention optional → Save → Done
+Login (existing) → Today's Work → Write Daily Notes → Mark Team Lead Attention optional → Save → Done
 
 ### Suggest Change
 

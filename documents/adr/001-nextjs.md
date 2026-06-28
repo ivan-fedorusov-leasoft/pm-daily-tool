@@ -27,3 +27,7 @@ Use a single Next.js fullstack monolith.
 - UI, backend logic, auth, and database access live in one codebase.
 - The project must keep clear internal boundaries between UI, services, repositories, and database logic.
 - Do not introduce microservices unless the product becomes significantly larger.
+
+## Amendment (see ADR-006)
+
+Daily Tool no longer ships as its own repository. It is built inside the existing `gc-pm-automation` Next.js monolith as an isolated `app/daily/*` module. The core principle — one fullstack monolith, no split frontend/backend, no microservices — still holds; the monolith changed from "a new one" to "the existing one."

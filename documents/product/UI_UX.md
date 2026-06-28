@@ -4,6 +4,10 @@
 
 # UI / UX
 
+## Host Application Shell (reused)
+
+Daily Tool renders inside `gc-pm-automation`'s existing `AppShell` (sidebar nav, header, design tokens) — it does not introduce a second layout or design system. A single new "Daily" entry is added to the existing sidebar, visible to every authenticated user (not gated to PM-only, since any Profile may use Today's Work and start a Daily session). All Daily Tool screens below live under the `/daily` route segment.
+
 ## Today's Work
 
 Purpose:

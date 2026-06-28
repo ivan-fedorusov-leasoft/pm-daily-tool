@@ -56,6 +56,8 @@ MVP is NOT intended to:
 
 ## Users
 
+Daily Tool has no separate accounts or sign-up flow. Every Daily Tool user is an existing `gc-pm-automation` user (Google sign-in restricted to `gamingcorps.com` / `leasoft.org`). Each user's Developer/Manager/Admin role below is *derived* from their existing `gc-pm-automation` role (`super_admin` → Admin, `pm` → Manager, every other role → Developer by default), with an optional per-user override. This mapping never changes `gc-pm-automation`'s own role or permissions — see `documents/technical/ARCHITECTURE.md` and ADR-006.
+
 ### Developer
 
 Responsible for one or more games.

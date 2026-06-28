@@ -102,3 +102,11 @@ Daily Host controls the meeting but does not receive Manager/Admin permissions.
 Lifecycle state of a game in the tool.
 
 Controls whether the game appears in Today's Work and Daily Mode.
+
+## Profile
+
+The existing `gc-pm-automation` user/account record (`profiles` table). Daily Tool has no separate user entity — every Developer, Manager, Admin, or Daily Host is a Profile.
+
+## Daily Role
+
+The effective Developer/Manager/Admin role used by Daily Tool for a given Profile. Derived by default from the user's existing `gc-pm-automation` role; may be explicitly overridden per Profile without affecting that user's `gc-pm-automation` permissions.

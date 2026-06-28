@@ -1,10 +1,11 @@
 document: API
 package: Technical Design
+notes: Daily Tool ships inside gc-pm-automation (ADR-006). All `reads`/`writes` below refer to the daily_-prefixed tables in documents/technical/DATABASE.yaml (daily_games, daily_notes, daily_change_requests, daily_stage_history, daily_sessions, daily_pull_requests, daily_math_owners, daily_game_stage_dates) plus the reused `profiles` table for identity.
 
 transport:
   allowed:
     - Next.js Server Actions
-    - API Routes
+  preferred: Server Actions colocated as actions.ts per route (e.g. app/daily/today/actions.ts), matching gc-pm-automation's existing convention (app/deploy/actions.ts, app/cleanup/actions.ts).
   rule: The contract matters more than the transport.
 
 operations:
@@ -17,10 +18,10 @@ operations:
       - all protected screens
       - all mutations
     returns:
-      - authenticated user
+      - authenticated Profile (reused gc-pm-automation profiles row), with derived daily_role
     rules:
       - Unauthenticated users cannot access the app.
-      - Domain restrictions may be applied later.
+      - Auth and domain restrictions are gc-pm-automation's existing gate — not reimplemented here.
 
   listUsers:
     category: users
@@ -32,7 +33,7 @@ operations:
       - assignment dropdowns
       - admin tools
     reads:
-      - users
+      - profiles
 
   listMyGames:
     category: games
@@ -44,8 +45,8 @@ operations:
     used_by:
       - Today's Work
     reads:
-      - games
-      - game_stage_dates
+      - daily_games
+      - daily_game_stage_dates
     returns:
       - active games assigned to current user
     rules:
@@ -62,8 +63,8 @@ operations:
     used_by:
       - Simple Radar
     reads:
-      - games
-      - game_stage_dates
+      - daily_games
+      - daily_game_stage_dates
     returns:
       - all games regardless of status
 
@@ -78,11 +79,11 @@ operations:
       - Game Page
       - Daily Mode
     reads:
-      - games
-      - game_stage_dates
+      - daily_games
+      - daily_game_stage_dates
       - daily_notes
-      - change_requests
-      - stage_history
+      - daily_change_requests
+      - daily_stage_history
     returns:
       - game
       - stage dates
@@ -99,7 +100,7 @@ operations:
     used_by:
       - Game Page
     writes:
-      - games
+      - daily_games
     rules:
       - Protected data only.
       - Creates audit log in v1.5.
@@ -114,7 +115,7 @@ operations:
       - Game Page
       - Daily Mode
     writes:
-      - game_stage_dates
+      - daily_game_stage_dates
     rules:
       - Direct edit.
       - Creates audit log in v1.5.
@@ -129,11 +130,11 @@ operations:
       - Game Page
       - Daily Mode
     writes:
-      - games
-      - stage_history
+      - daily_games
+      - daily_stage_history
     rules:
-      - Updates games.current_stage.
-      - Creates stage_history record.
+      - Updates daily_games.current_stage.
+      - Creates daily_stage_history record.
       - Creates audit log in v1.5.
 
   upsertDailyNote:
@@ -149,7 +150,7 @@ operations:
       - Game Page
       - Daily Mode
     reads:
-      - games
+      - daily_games
       - daily_notes
     writes:
       - daily_notes
@@ -182,7 +183,7 @@ operations:
       - Today's Work
       - Manager review
     reads:
-      - games
+      - daily_games
       - daily_notes
     rules:
       - Developer sees notes for own assigned active games.
@@ -199,7 +200,7 @@ operations:
       - Game Page
       - Daily Mode
     writes:
-      - change_requests
+      - daily_change_requests
     rules:
       - Used when user cannot or should not directly edit protected data.
       - Pending request becomes visible on Game Page.
@@ -214,7 +215,7 @@ operations:
       - Manager review
       - Game Page
     reads:
-      - change_requests
+      - daily_change_requests
 
   approveChangeRequest:
     category: change_requests
@@ -227,9 +228,9 @@ operations:
       - Game Page
       - Daily Mode
     reads:
-      - change_requests
+      - daily_change_requests
     writes:
-      - change_requests
+      - daily_change_requests
       - target_entity
     rules:
       - Applies new value to target field.
@@ -248,7 +249,7 @@ operations:
       - Game Page
       - Daily Mode
     writes:
-      - change_requests
+      - daily_change_requests
     rules:
       - Marks request as rejected.
       - Sets reviewed_by and reviewed_at.
@@ -374,7 +375,7 @@ operations:
     used_by:
       - Game Page
     reads:
-      - pull_requests
+      - daily_pull_requests
 
   createPullRequestLink:
     category: pull_requests
@@ -386,7 +387,7 @@ operations:
     used_by:
       - Game Page
     writes:
-      - pull_requests
+      - daily_pull_requests
     rules:
       - Developers may link Pull Requests to games they are assigned to.
       - Manager/admin may link Pull Requests to any game.
@@ -401,7 +402,7 @@ operations:
     used_by:
       - GitHub
     writes:
-      - pull_requests
+      - daily_pull_requests
       - bullmq_jobs
     rules:
       - Validate webhook.

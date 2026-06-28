@@ -17,14 +17,23 @@ This documentation is written primarily for AI coding assistants.
 
 ## Project Rules
 
-- Use a single Next.js fullstack monolith.
+- Daily Tool is built inside the existing `gc-pm-automation` Next.js app, as an isolated `app/daily/*` module. It is not a standalone repository. See ADR-006.
 - Never split frontend and backend into separate repositories.
-- PostgreSQL is the source of truth.
-- Drizzle ORM is the ORM.
+- PostgreSQL is the source of truth — the same Supabase project already used by `gc-pm-automation`.
+- No ORM. Use `@supabase/supabase-js` + generated `lib/database.types.ts`, matching the host app's existing pattern. Access control is enforced via Postgres RLS, not application-level ORM checks.
 - Redis is introduced only in v1.5.
 - BullMQ is introduced only in v2.
 - GitHub integration is NOT part of MVP.
 - AI integration is NOT part of MVP.
+
+## Integration Rules
+
+- Reuse `gc-pm-automation`'s Supabase Auth and `profiles` table for identity. Never create a separate `users` table.
+- Every new table and enum uses a `daily_` prefix to avoid collisions in the shared database.
+- Daily Tool's `developer` / `manager` / `admin` role is a derived value (`profiles.daily_role`, overridable), not a rename or replacement of `gc-pm-automation`'s existing `user_role` enum. Never modify that enum or its existing RLS policies.
+- Reuse the host app's `AppShell` layout and add one nav entry — do not introduce a second design system or a second layout shell.
+- Follow the host app's existing code layout: flat `lib/daily/*.ts` + colocated `app/daily/<route>/actions.ts`, not a separate `server/{services,repositories,permissions}` tree.
+- Full integration rationale: `claude/INTEGRATION_AUDIT.md`.
 
 ---
 

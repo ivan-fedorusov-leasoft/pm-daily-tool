@@ -1,6 +1,7 @@
 document: DATABASE
 package: Technical Design
 source_of_truth: PostgreSQL
+notes: Daily Tool runs inside the existing gc-pm-automation Supabase project (see ADR-006, claude/INTEGRATION_AUDIT.md). It does not provision its own database. Every new table and enum uses a `daily_` prefix to avoid colliding with gc-pm-automation's existing objects (templates, runs, streams, team_leads, ...). No `users` table is created — identity is the existing `profiles` table.
 
 runtime_storage:
   redis:
@@ -13,13 +14,32 @@ runtime_storage:
       - cache
       - rate_limiting
 
-enums:
-  user_role:
-    - developer
-    - manager
-    - admin
+reused_tables:
+  profiles:
+    owned_by: gc-pm-automation
+    purpose: Identity/account table, 1:1 with Supabase auth.users. Daily Tool has no separate users table — every Developer/Manager/Admin/Daily Host reference points here.
+    daily_tool_addition:
+      column: daily_role
+      type: daily_role (new enum: developer, manager, admin)
+      nullable: true
+      rule: Override only. NULL means "derive from gc-pm-automation's existing profiles.role": super_admin -> admin, pm -> manager, everything else -> developer. Reading/deriving this value never modifies gc-pm-automation's own `role` column, its enum, or its RLS policies.
+    used_by:
+      - Today's Work
+      - Game Page
+      - Change Requests
+      - Daily Notes
+      - Daily Mode
 
-  game_stage:
+enums:
+  daily_role:
+    implemented_in: v1
+    values:
+      - developer
+      - manager
+      - admin
+    note: Additive override column on the reused `profiles` table. See reused_tables.profiles above.
+
+  daily_game_stage:
     - start_date
     - playable
     - alpha
@@ -33,7 +53,7 @@ enums:
     - manual
     - transcript
 
-  change_request_status:
+  daily_change_request_status:
     - pending
     - approved
     - rejected
@@ -43,7 +63,7 @@ enums:
     - finished
     - cancelled
 
-  game_status:
+  daily_game_status:
     - planned
     - active
     - paused
@@ -51,42 +71,7 @@ enums:
     - completed
 
 tables:
-  users:
-    implemented_in: v1
-    purpose: Stores authenticated application users.
-    columns:
-      id:
-        type: uuid
-        primary_key: true
-      email:
-        type: varchar
-        unique: true
-        required: true
-      name:
-        type: varchar
-        required: true
-      role:
-        type: user_role
-        required: true
-      created_at:
-        type: timestamp
-        required: true
-      updated_at:
-        type: timestamp
-        required: true
-    rules:
-      - Developers can be assigned to games.
-      - Managers can also be assigned to games.
-      - Admins can also be assigned to games.
-      - Role controls permissions, not game ownership.
-    used_by:
-      - Today's Work
-      - Game Page
-      - Change Requests
-      - Daily Notes
-      - Daily Mode
-
-  math_owners:
+  daily_math_owners:
     implemented_in: v1
     purpose: Stores math contacts assigned to games.
     columns:
@@ -111,7 +96,7 @@ tables:
       - Game Page
       - Simple Radar
 
-  games:
+  daily_games:
     implemented_in: v1
     purpose: Stores main game/project records.
     columns:
@@ -126,17 +111,17 @@ tables:
         nullable: true
       developer_id:
         type: uuid
-        references: users.id
+        references: profiles.id
         required: true
       math_owner_id:
         type: uuid
-        references: math_owners.id
+        references: daily_math_owners.id
         nullable: true
       current_stage:
-        type: game_stage
+        type: daily_game_stage
         nullable: true
       status:
-        type: game_status
+        type: daily_game_status
         required: true
       created_at:
         type: timestamp
@@ -145,8 +130,8 @@ tables:
         type: timestamp
         required: true
     relations:
-      developer_id: users.id
-      math_owner_id: math_owners.id
+      developer_id: profiles.id
+      math_owner_id: daily_math_owners.id
     protected_fields:
       - title
       - client
@@ -155,9 +140,9 @@ tables:
       - current_stage
       - status
     rules:
-      - A game has one primary assigned developer.
-      - Assigned developer may have role developer, manager, or admin.
-      - Protected fields can be edited directly only by manager/admin.
+      - A game has one primary assigned developer (a Profile).
+      - Assigned developer may have derived daily_role developer, manager, or admin.
+      - Protected fields can be edited directly only by daily_role manager/admin.
       - Developers suggest protected changes through Change Requests.
       - Planned games may have no current_stage.
       - Active games must have current_stage.
@@ -170,7 +155,7 @@ tables:
       - Simple Radar
       - Daily Mode
 
-  game_stage_dates:
+  daily_game_stage_dates:
     implemented_in: v1
     purpose: Stores predefined target dates for every game stage.
     columns:
@@ -179,10 +164,10 @@ tables:
         primary_key: true
       game_id:
         type: uuid
-        references: games.id
+        references: daily_games.id
         required: true
       stage:
-        type: game_stage
+        type: daily_game_stage
         required: true
       target_date:
         type: date
@@ -194,12 +179,12 @@ tables:
         type: timestamp
         required: true
     relations:
-      game_id: games.id
+      game_id: daily_games.id
     rules:
       - Stage dates are usually planned far in advance.
       - Game Page must show all stage dates.
       - Simple Radar should show compact stage health and allow expanding full dates.
-      - Direct edits require manager/admin.
+      - Direct edits require daily_role manager/admin.
       - Developers use Change Requests.
     used_by:
       - Game Page
@@ -215,11 +200,11 @@ tables:
         primary_key: true
       game_id:
         type: uuid
-        references: games.id
+        references: daily_games.id
         required: true
       author_id:
         type: uuid
-        references: users.id
+        references: profiles.id
         required: true
       date:
         type: date
@@ -240,11 +225,11 @@ tables:
         type: timestamp
         required: true
     relations:
-      game_id: games.id
-      author_id: users.id
+      game_id: daily_games.id
+      author_id: profiles.id
     rules:
       - Developers can create/edit their own notes for games they are assigned to.
-      - Managers/Admins can create/edit notes for any game.
+      - Managers/Admins (derived daily_role) can create/edit notes for any game.
       - During Daily Mode, Daily Host may edit notes but does not receive manager permissions.
       - Blockers are written inside summary in MVP.
     used_by:
@@ -252,7 +237,7 @@ tables:
       - Game Page
       - Daily Mode
 
-  change_requests:
+  daily_change_requests:
     implemented_in: v1
     purpose: Stores suggested project changes that require approval.
     columns:
@@ -261,11 +246,11 @@ tables:
         primary_key: true
       game_id:
         type: uuid
-        references: games.id
+        references: daily_games.id
         required: true
       requested_by:
         type: uuid
-        references: users.id
+        references: profiles.id
         required: true
       field_name:
         type: varchar
@@ -277,11 +262,11 @@ tables:
         type: text
         required: true
       status:
-        type: change_request_status
+        type: daily_change_request_status
         required: true
       reviewed_by:
         type: uuid
-        references: users.id
+        references: profiles.id
         nullable: true
       reviewed_at:
         type: timestamp
@@ -293,9 +278,9 @@ tables:
         type: timestamp
         required: true
     relations:
-      game_id: games.id
-      requested_by: users.id
-      reviewed_by: users.id
+      game_id: daily_games.id
+      requested_by: profiles.id
+      reviewed_by: profiles.id
     rules:
       - Developers create Change Requests for protected fields.
       - Managers/Admins approve or reject Change Requests.
@@ -306,7 +291,7 @@ tables:
       - Today's Work review
       - Daily Mode
 
-  stage_history:
+  daily_stage_history:
     implemented_in: v1
     purpose: Stores transitions between game stages.
     columns:
@@ -315,24 +300,24 @@ tables:
         primary_key: true
       game_id:
         type: uuid
-        references: games.id
+        references: daily_games.id
         required: true
       from_stage:
-        type: game_stage
+        type: daily_game_stage
         nullable: true
       to_stage:
-        type: game_stage
+        type: daily_game_stage
         required: true
       changed_by:
         type: uuid
-        references: users.id
+        references: profiles.id
         required: true
       created_at:
         type: timestamp
         required: true
     relations:
-      game_id: games.id
-      changed_by: users.id
+      game_id: daily_games.id
+      changed_by: profiles.id
     rules:
       - Created when current_stage changes.
     used_by:
@@ -348,7 +333,7 @@ tables:
         primary_key: true
       host_user_id:
         type: uuid
-        references: users.id
+        references: profiles.id
         required: true
       date:
         type: date
@@ -369,9 +354,9 @@ tables:
         type: timestamp
         required: true
     relations:
-      host_user_id: users.id
+      host_user_id: profiles.id
     rules:
-      - Daily Host may be any user.
+      - Daily Host may be any Profile.
       - Daily Host controls the session.
       - Daily Host does not receive manager/admin permissions.
       - Live current game state is stored in Redis, not SQL.
@@ -379,7 +364,7 @@ tables:
       - Daily Mode
       - Future Timeline
 
-  audit_logs:
+  daily_audit_logs:
     implemented_in: v1.5
     purpose: Stores important project changes.
     columns:
@@ -388,7 +373,7 @@ tables:
         primary_key: true
       user_id:
         type: uuid
-        references: users.id
+        references: profiles.id
         required: true
       entity_type:
         type: varchar
@@ -409,7 +394,7 @@ tables:
         type: timestamp
         required: true
     relations:
-      user_id: users.id
+      user_id: profiles.id
     rules:
       - Audit logs are introduced in v1.5.
       - Audit logs do not replace permission checks.
@@ -419,7 +404,7 @@ tables:
       - Debugging
       - Accountability
 
-  pull_requests:
+  daily_pull_requests:
     implemented_in: v2
     purpose: Stores GitHub Pull Requests related to games and stages.
     columns:
@@ -428,10 +413,10 @@ tables:
         primary_key: true
       game_id:
         type: uuid
-        references: games.id
+        references: daily_games.id
         required: true
       stage:
-        type: game_stage
+        type: daily_game_stage
         nullable: true
       github_url:
         type: text
@@ -464,7 +449,7 @@ tables:
         type: text
         nullable: true
     relations:
-      game_id: games.id
+      game_id: daily_games.id
     rules:
       - GitHub is a block inside Game Page.
       - GitHub is not a standalone screen.
@@ -474,11 +459,26 @@ tables:
     used_by:
       - Game Page
 
+rls_helpers:
+  implemented_in: v1
+  schema: private
+  purpose: Mirrors gc-pm-automation's existing private.app_role()/is_admin() pattern exactly — same schema, same SECURITY DEFINER + search_path='' convention, same grant-to-authenticated pattern. New functions only; nothing existing is modified.
+  functions:
+    private.daily_role():
+      returns: daily_role
+      logic: coalesce(profiles.daily_role override, mapped default from profiles.role)
+    private.is_daily_manager():
+      returns: boolean
+      logic: daily_role() in ('admin','manager')
+    private.is_daily_admin():
+      returns: boolean
+      logic: daily_role() = 'admin'
+
 future_tables:
   implemented_in: v3
   status: postponed
   do_not_implement_in_mvp: true
   possible_tables:
-    - transcripts
-    - ai_summaries
-    - embeddings
+    - daily_transcripts
+    - daily_ai_summaries
+    - daily_embeddings
