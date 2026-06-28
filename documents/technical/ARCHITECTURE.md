@@ -1,80 +1,108 @@
 # Technical Design
 
-------------------------------------------------------------------------
+---
+
+# ARCHITECTURE
+
+## Purpose
+
+Defines the high-level architecture and implementation principles of the project.
+
+---
+
+# Core Principles
+
+- Documentation is the source of truth.
+- PostgreSQL is the source of truth.
+- Redis stores runtime state only.
+- Every feature starts as a manual workflow before automation.
+- AI augments existing workflows, never defines them.
+- The system prioritizes autonomy over centralization.
+- Approval is required only for protected project data.
+- Every significant architectural decision must have an ADR.
+
+---
 
 # Architecture Style
 
-Use a single fullstack monolith.
+Use a single Next.js fullstack monolith.
 
 Frontend and backend live in one repository.
 
-Do not split into separate frontend/backend services.
+Do not split the project into separate frontend/backend services.
 
-------------------------------------------------------------------------
+---
 
-# Stack
+# Technology Stack
 
 ## v1
 
--   Next.js
--   TypeScript
--   PostgreSQL
--   Drizzle ORM
--   Auth
--   Server Actions / API Routes
+- Next.js
+- TypeScript
+- PostgreSQL
+- Drizzle ORM
+- Authentication
+- Server Actions / API Routes
 
 ## v1.5
 
-Add: - Redis - Realtime transport - Presence - Locks - Cache - Rate
-limiting
+Add:
+
+- Redis
+- Presence
+- Edit Locks
+- Pub/Sub
+- Cache
+- Rate Limiting
+- Realtime Daily synchronization
 
 ## v2
 
-Add: - BullMQ - GitHub webhooks - Background workers
+Add:
+
+- BullMQ
+- GitHub Webhooks
+- Background Workers
 
 ## v3
 
-Add: - AI providers - Transcript processing - Embeddings - Semantic
-search
+Add:
 
-------------------------------------------------------------------------
+- AI Providers
+- Transcript Processing
+- AI Summaries
+- Embeddings
+- Semantic Search
+
+---
 
 # Suggested Project Structure
 
-``` text
+```text
 src/
+
   app/
     today/
-    games/
     radar/
+    games/
     api/
 
   server/
-    db/
-      schema.ts
-      client.ts
-
-    services/
-      games.service.ts
-      daily-notes.service.ts
-      change-requests.service.ts
-      stages.service.ts
-
-    repositories/
-      games.repo.ts
-      users.repo.ts
-      daily-notes.repo.ts
-      change-requests.repo.ts
-
     auth/
-      auth.config.ts
-      permissions.ts
+    db/
+      client.ts
+      schema.ts
+    repositories/
+    services/
+    permissions/
+    realtime/
+    jobs/
 
   features/
     today/
+    radar/
     game-page/
-    simple-radar/
-    daily-mode/
+    daily/
 
   shared/
     types/
@@ -82,35 +110,56 @@ src/
     utils/
 ```
 
-------------------------------------------------------------------------
+---
 
 # Layers
 
-## UI Layer
+## UI
 
-Responsibilities: - render screens - collect user input - display
-validation errors - call Server Actions / API
+Responsibilities
 
-Must not: - contain business permission logic - write directly to
-database
+- Render UI
+- Collect user input
+- Display validation
+- Call Server Actions / API
 
-------------------------------------------------------------------------
+Must not
 
-## Service Layer
+- Contain business logic
+- Access database directly
 
-Responsibilities: - business rules - permission checks - orchestration -
-calling repositories
+---
 
-Example: - create daily note - approve change request - update stage
-date - start daily session
+## Services
 
-------------------------------------------------------------------------
+Responsibilities
 
-## Repository Layer
+- Business logic
+- Permission checks
+- Workflow orchestration
+- Coordination between repositories
 
-Responsibilities: - database queries only - no business rules
+Examples
 
-------------------------------------------------------------------------
+- Create Daily Note
+- Approve Change Request
+- Start Daily Session
+- Change Stage
+
+---
+
+## Repositories
+
+Responsibilities
+
+- Database queries
+- Mapping database objects
+
+Must not
+
+- Contain business logic
+
+---
 
 # Permission Model
 
@@ -120,96 +169,300 @@ Responsibilities are assignment-based.
 
 Daily session control is session-based.
 
+These concepts must never be mixed.
+
 ## Roles
 
-### developer
+### Developer
 
--   can create/edit own Daily Notes for assigned games
--   can submit Change Requests
+Can:
 
-### manager
+- Edit Daily Notes for assigned games.
+- Link Pull Requests to assigned games.
+- Create Change Requests.
 
--   all developer capabilities
--   can edit protected project data
--   can approve/reject Change Requests
--   can assign Daily Host
--   can also be assigned as developer to games
+Cannot:
 
-### admin
+- Edit protected project data directly.
 
--   all manager capabilities
--   can manage users
--   can manage system settings
--   can also be assigned as developer to games
+### Manager
 
-## Daily Host
+Includes all Developer permissions.
+
+Additionally can:
+
+- Edit protected project data.
+- Approve Change Requests.
+- Reject Change Requests.
+
+Managers may also be assigned to games as developers.
+
+### Admin
+
+Includes all Manager permissions.
+
+Additionally can:
+
+- Manage users.
+- Manage system settings.
+
+Admins may also be assigned to games as developers.
+
+---
+
+# Daily Host
 
 Daily Host is not a role.
 
-Daily Host is assigned to one Daily session.
+Daily Host is assigned automatically when a user starts a Daily session.
 
-Daily Host can: - control Daily Mode navigation - start/continue/finish
-a session - edit Daily Notes during the session
+Any authenticated user may become Daily Host.
 
-Daily Host cannot: - edit protected project data unless also
-manager/admin
+Daily Host may:
 
-------------------------------------------------------------------------
+- Navigate Daily Mode.
+- Move between games.
+- Finish Daily.
+- Edit Daily Notes during the session.
 
-# Redis Usage
+Daily Host does not receive Manager/Admin permissions.
+
+---
+
+# Assignment Model
+
+A game has one primary assigned developer.
+
+Assignment determines ownership.
+
+Role determines permissions.
+
+---
+
+# Project Lifecycle
+
+Every game has two independent properties.
+
+## Status
+
+Possible values:
+
+- planned
+- active
+- paused
+- cancelled
+- completed
+
+## Stage
+
+Possible values:
+
+- start_date
+- playable
+- alpha
+- beta
+- gold
+- master
+- eta_release_exclusive
+- eta_release_com
+
+Rules
+
+- Planned games may not have a current stage.
+- Active games must have a current stage.
+
+---
+
+# Screen Rules
+
+## Today's Work
+
+Displays assigned active games only.
+
+## Simple Radar
+
+Displays all games.
+
+Supports expanding a game to view:
+
+- Current stage
+- Planned stage dates
+- General project information
+
+## Game Page
+
+Displays:
+
+- Full project information
+- Stage dates
+- Daily Notes
+- Change Requests
+- Pull Requests
+
+## Daily Mode
+
+Displays active games only.
+
+All connected clients stay synchronized.
+
+---
+
+# Protected Project Data
+
+Protected fields include:
+
+- Game Title
+- Client
+- Assigned Developer
+- Math Owner
+- Current Stage
+- Stage Dates
+
+Developers cannot modify protected fields directly.
+
+Protected changes require a Change Request.
+
+Managers/Admins may edit protected fields directly.
+
+---
+
+# Data Ownership
+
+## Persistent Data
+
+Stored in PostgreSQL.
+
+Examples:
+
+- Users
+- Games
+- Stage Dates
+- Daily Notes
+- Change Requests
+- Pull Requests
+- History
+
+## Runtime Data
+
+Stored in Redis.
+
+Examples:
+
+- Active Daily Session
+- Current Daily Game
+- Presence
+- Edit Locks
+- Cache
+- Pub/Sub Events
+
+Redis is never the source of truth.
+
+---
+
+# Redis Responsibilities
 
 Redis is introduced in v1.5.
 
-Redis is used for runtime data only.
+Used for:
 
-PostgreSQL remains the source of truth.
+- Daily synchronization
+- Presence
+- Edit Locks
+- Pub/Sub
+- Cache
+- Rate Limiting
 
-Use Redis for: - active Daily session state - current game in Daily
-Mode - presence - edit locks - cache - rate limiting - pub/sub events
+Example keys:
 
-Examples: - `daily:active_session_id` -
-`daily:{sessionId}:current_game_id` -
-`presence:game:{gameId}:user:{userId}` - `lock:game:{gameId}` -
-`cache:radar:list`
+```text
+daily:session
+daily:current_game
+presence:game:{id}
+lock:game:{id}
+cache:radar
+```
 
-------------------------------------------------------------------------
+---
 
-# BullMQ Usage
+# BullMQ Responsibilities
 
 BullMQ is introduced in v2.
 
-Use BullMQ for background tasks that: - call external APIs - may take
-several seconds - need retries - should not block HTTP requests
+Use BullMQ only for long-running or retryable jobs.
 
-Examples: - process GitHub webhook - sync Pull Request details -
-generate PR summary - parse transcript in v3 - generate embeddings in v3
+GitHub flow:
 
-------------------------------------------------------------------------
+```text
+Webhook
+    ↓
+ BullMQ
+    ↓
+Database
+```
 
-# Realtime
+AI flow:
 
-Realtime starts in v1.5.
+```text
+Transcript
+     ↓
+  BullMQ
+     ↓
+ AI Summary
+     ↓
+Database
+```
 
-Use realtime for: - Daily Mode synchronization - presence - lock
-updates - project changes - timeline events
+---
 
-Daily Mode must keep all connected clients synchronized to the same
-current game.
+# GitHub Integration
 
-------------------------------------------------------------------------
+GitHub starts in v2.
 
-# Protected Data
+GitHub is a block inside Game Page.
 
-Protected project data includes: - game title - client - assigned
-developer - math owner - current stage - stage dates
+Developers may manually link Pull Requests to games they are assigned to.
 
-Only manager/admin can edit protected data directly.
+Managers/Admins may link Pull Requests to any game.
 
-Developers submit Change Requests.
+GitHub Webhooks are processed asynchronously using BullMQ.
 
-------------------------------------------------------------------------
+---
+
+# AI Integration
+
+AI starts in v3.
+
+Workflow:
+
+```text
+Manual Workflow
+       ↓
+Validated Workflow
+       ↓
+AI Augmentation
+```
+
+AI may provide:
+
+- Transcript parsing
+- Daily summaries
+- Blocker extraction
+- Semantic Search
+- Suggested actions
+
+The product must remain fully usable without AI.
+
+---
 
 # MVP Constraints
 
-Do not implement in v1: - Redis - BullMQ - GitHub webhooks - AI -
-Timeline - semantic search - Slack integration - calendar integration
+Do not implement before their roadmap stage:
+
+- Redis
+- BullMQ
+- GitHub Webhooks
+- AI
+- Timeline
+- Semantic Search
+- Slack Integration
+- Calendar Integration

@@ -21,15 +21,15 @@ Read the relevant documentation before implementing or modifying any feature.
 Minimum required read order:
 
 1. README.md
-2. foundation/AI_CONTEXT.md
-3. foundation/PRODUCT.md
-4. foundation/GLOSSARY.md
-5. product/ROADMAP.md
-6. product/USER_FLOWS.md
-7. product/UI_UX.md
-8. technical/DATABASE.yaml
-9. technical/ARCHITECTURE.md
-10. technical/API.yaml
+2. documents/foundation/AI_CONTEXT.md
+3. documents/foundation/PRODUCT.md
+4. documents/foundation/GLOSSARY.md
+5. documents/product/ROADMAP.md
+6. documents/product/USER_FLOWS.md
+7. documents/product/UI_UX.md
+8. documents/technical/DATABASE.yaml
+9. documents/technical/ARCHITECTURE.md
+10. documents/technical/API.yaml
 11. adr/*
 
 Only read additional documents if the task requires them.

@@ -1,44 +1,86 @@
 # Product Design
 
-------------------------------------------------------------------------
+---
 
-# Today's Work
+# UI / UX
 
-Purpose: Primary landing page.
+## Today's Work
 
-Contains: - My Games - Today's Daily Notes - Team Lead Attention flag -
-Save
+Purpose:
 
-Only active assigned games are shown.
+Primary landing page.
 
-------------------------------------------------------------------------
+Contains:
 
-# Game Page
+- My Games
+- Today's Daily Notes
+- Team Lead Attention flag
+- Save action
 
-Contains: - General information - Current stage - Stage dates - Daily
-Note history - Change Requests
+Rules:
 
-Future: - GitHub - AI
+- Only active assigned games are shown.
+- Planned, paused, cancelled and completed games are hidden.
 
-------------------------------------------------------------------------
+---
 
-# Simple Radar
+## Game Page
 
-Contains: - Game - Developer - Current Stage - Project Health
+Contains:
 
-Expandable: - Full stage dates
+- General information
+- Current stage
+- Stage dates
+- Daily Note history
+- Change Requests
+- Pull Requests block in v2
+- AI block in v3
 
-Displays all games, including planned and paused games.
+Rules:
 
-------------------------------------------------------------------------
+- Game Page is the source of truth for a single game.
+- Game Page can be opened for any game status.
 
-# Daily Mode
+---
+
+## Simple Radar
+
+Contains:
+
+- Game
+- Developer
+- Current Stage
+- Project Health
+- Game Status
+
+Expandable:
+
+- Full stage dates
+- General project information
+
+Rules:
+
+- Displays all games, including planned, active and paused games.
+
+---
+
+## Daily Mode
 
 Presentation mode.
 
-Contains: - Current game - Current stage - Stage dates - Today's Note -
-Previous - Next - Finish
+Contains:
 
-Controlled only by Team Lead.
+- Current game
+- Current stage
+- Stage dates
+- Today's Note
+- Previous
+- Next
+- Finish
 
-All connected users stay synchronized.
+Rules:
+
+- Controlled by Daily Host.
+- Any authenticated user can become Daily Host by starting Daily.
+- All connected users stay synchronized.
+- Displays active games only.

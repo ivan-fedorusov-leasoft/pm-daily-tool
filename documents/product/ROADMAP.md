@@ -1,65 +1,79 @@
 # Product Design
 
-------------------------------------------------------------------------
+---
 
-# v1 (MVP)
+# ROADMAP
 
-## Features
+## v1 (MVP)
 
--   Today's Work
--   Game Page
--   Simple Radar
--   Manual Daily Notes
--   Change Requests
--   Stage Management
--   Authentication
+### Features
 
-## References
+- Today's Work
+- Game Page
+- Simple Radar
+- Manual Daily Notes
+- Change Requests
+- Stage Management
+- Authentication
 
--   USER_FLOWS.md
--   UI_UX.md
--   DATABASE.md
+### References
 
-------------------------------------------------------------------------
+- `documents/product/USER_FLOWS.md`
+- `documents/product/UI_UX.md`
+- `documents/technical/DATABASE.yaml`
+- `documents/technical/API.yaml`
 
-# v1.5
+---
 
-## Features
+## v1.5
 
--   Daily Mode
--   Redis
--   Presence
--   Locks
--   Live synchronization
--   Cache
--   Rate limiting
--   Timeline
+### Features
 
-## References
+- Daily Mode
+- Redis
+- Presence
+- Locks
+- Live synchronization
+- Cache
+- Rate limiting
+- Timeline
 
--   USER_FLOWS.md
--   UI_UX.md
--   DATABASE.md
--   ARCHITECTURE.md
+### References
 
-------------------------------------------------------------------------
+- `documents/product/USER_FLOWS.md`
+- `documents/product/UI_UX.md`
+- `documents/technical/DATABASE.yaml`
+- `documents/technical/API.yaml`
+- `documents/technical/ARCHITECTURE.md`
 
-# v2
+---
 
-## Features
+## v2
 
--   GitHub integration
--   Pull Request history
--   BullMQ
--   GitHub webhooks
+### Features
 
-------------------------------------------------------------------------
+- GitHub integration
+- Pull Request history
+- BullMQ
+- GitHub webhooks
 
-# v3
+### References
 
-## Features
+- `documents/technical/DATABASE.yaml`
+- `documents/technical/API.yaml`
+- `documents/adr/004-github.md`
 
--   AI transcript parsing
--   AI summaries
--   Semantic search
--   Embeddings
+---
+
+## v3
+
+### Features
+
+- AI transcript parsing
+- AI summaries
+- Semantic search
+- Embeddings
+
+### References
+
+- `documents/adr/005-ai.md`

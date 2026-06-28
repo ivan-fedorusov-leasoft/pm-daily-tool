@@ -42,14 +42,14 @@ List only the documents relevant to this task.
 Recommended baseline:
 
 - README.md
-- foundation/AI_CONTEXT.md
-- foundation/GLOSSARY.md
-- product/ROADMAP.md
-- product/USER_FLOWS.md
-- product/UI_UX.md
-- technical/DATABASE.yaml
-- technical/ARCHITECTURE.md
-- technical/API.yaml
+- documents/foundation/AI_CONTEXT.md
+- documents/foundation/GLOSSARY.md
+- documents/product/ROADMAP.md
+- documents/product/USER_FLOWS.md
+- documents/product/UI_UX.md
+- documents/technical/DATABASE.yaml
+- documents/technical/ARCHITECTURE.md
+- documents/technical/API.yaml
 - adr/*
 
 ---

@@ -1,7 +1,3 @@
-# Foundation
-
----
-
 # README
 
 ## Purpose
@@ -18,21 +14,21 @@ Always read the documentation before implementing or modifying any feature.
 
 Read the documents in the following order:
 
-1. foundation/AI_CONTEXT.md
-2. foundation/PRODUCT.md
-3. foundation/GLOSSARY.md
+1. `documents/foundation/AI_CONTEXT.md`
+2. `documents/foundation/PRODUCT.md`
+3. `documents/foundation/GLOSSARY.md`
 
-4. product/ROADMAP.md
-5. product/USER_FLOWS.md
-6. product/UI_UX.md
+4. `documents/product/ROADMAP.md`
+5. `documents/product/USER_FLOWS.md`
+6. `documents/product/UI_UX.md`
 
-7. technical/DATABASE.yaml
-8. technical/ARCHITECTURE.md
-9. technical/API.yaml
+7. `documents/technical/DATABASE.yaml`
+8. `documents/technical/ARCHITECTURE.md`
+9. `documents/technical/API.yaml`
 
-10. adr/*
+10. `documents/adr/*`
 
-11. product/FUTURE_IDEAS.md
+11. `documents/product/FUTURE_IDEAS.md`
 
 ---
 
@@ -44,7 +40,7 @@ Read the documents in the following order:
 - Do not introduce unnecessary abstractions.
 - Prefer consistency over novelty.
 - Prefer simplicity over flexibility.
-- Keep naming consistent with GLOSSARY.md.
+- Keep naming consistent with `documents/foundation/GLOSSARY.md`.
 
 ---
 
