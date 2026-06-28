@@ -50,7 +50,7 @@ Recommended baseline:
 - documents/technical/DATABASE.yaml
 - documents/technical/ARCHITECTURE.md
 - documents/technical/API.yaml
-- adr/*
+- documents/adr/*
 
 ---
 

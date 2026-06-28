@@ -85,6 +85,16 @@ Do not mix these concepts.
 
 ---
 
+## Claude Workflow Files
+
+Use these files when working with Claude or another implementation AI:
+
+- `claude/CLAUDE.md` — general behavior rules for implementation.
+- `claude/TASK_TEMPLATE.md` — template for scoped implementation tasks.
+- `claude/EXISTING_APP_INTEGRATION_AUDIT_PROMPT.md` — use before integrating Daily Tool into an existing Next.js/Supabase application.
+
+---
+
 ## Goal
 
 Build a simple, maintainable and autonomous internal tool.

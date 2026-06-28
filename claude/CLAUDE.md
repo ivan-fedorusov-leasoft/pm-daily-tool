@@ -30,7 +30,7 @@ Minimum required read order:
 8. documents/technical/DATABASE.yaml
 9. documents/technical/ARCHITECTURE.md
 10. documents/technical/API.yaml
-11. adr/*
+11. documents/adr/*
 
 Only read additional documents if the task requires them.
 

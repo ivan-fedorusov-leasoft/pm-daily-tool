@@ -12,7 +12,7 @@ Do not start implementation immediately.
 
 Do not modify files during the audit phase.
 
-First produce an integration plan.
+First produce an integration audit report and an integration plan.
 
 ---
 
@@ -52,17 +52,17 @@ Find the best integration strategy that:
 Before making recommendations, read:
 
 1. README.md
-2. CLAUDE.md
-3. foundation/AI_CONTEXT.md
-4. foundation/PRODUCT.md
-5. foundation/GLOSSARY.md
-6. product/ROADMAP.md
-7. product/USER_FLOWS.md
-8. product/UI_UX.md
-9. technical/DATABASE.yaml
-10. technical/ARCHITECTURE.md
-11. technical/API.yaml
-12. adr/*
+2. claude/CLAUDE.md
+3. documents/foundation/AI_CONTEXT.md
+4. documents/foundation/PRODUCT.md
+5. documents/foundation/GLOSSARY.md
+6. documents/product/ROADMAP.md
+7. documents/product/USER_FLOWS.md
+8. documents/product/UI_UX.md
+9. documents/technical/DATABASE.yaml
+10. documents/technical/ARCHITECTURE.md
+11. documents/technical/API.yaml
+12. documents/adr/*
 
 Then inspect the existing application structure.
 
