@@ -8,6 +8,8 @@ Documentation is the source of truth.
 
 Always read the documentation before implementing or modifying any feature.
 
+Daily Tool is built **inside the existing `gc-pm-automation` application**, not as a standalone repository or deployment. See ADR-006 (`documents/adr/006-gc-pm-automation-integration.md`) and `claude/INTEGRATION_AUDIT.md` before implementing anything.
+
 ---
 
 ## Read Order
@@ -76,8 +78,11 @@ Do not mix these concepts.
 
 ## Architecture
 
-- Single Next.js fullstack monolith.
-- PostgreSQL is the source of truth.
+- Single Next.js fullstack monolith — the existing `gc-pm-automation` app, not a new one.
+- PostgreSQL is the source of truth — the same Supabase project already backing `gc-pm-automation`.
+- No ORM. Use `@supabase/supabase-js` + generated types, matching the host app's existing pattern.
+- Identity is reused: no separate `users` table — every user is an existing `gc-pm-automation` Profile.
+- Every new table/enum uses a `daily_` prefix.
 - Redis stores runtime state only.
 - BullMQ is used only for background jobs.
 - GitHub integration starts in v2.
@@ -91,7 +96,8 @@ Use these files when working with Claude or another implementation AI:
 
 - `claude/CLAUDE.md` — general behavior rules for implementation.
 - `claude/TASK_TEMPLATE.md` — template for scoped implementation tasks.
-- `claude/EXISTING_APP_INTEGRATION_AUDIT_PROMPT.md` — use before integrating Daily Tool into an existing Next.js/Supabase application.
+- `claude/EXISTING_APP_INTEGRATION_AUDIT_PROMPT.md` — the audit prompt that was used to plan the integration.
+- `claude/INTEGRATION_AUDIT.md` — the resulting integration plan. Canonical reference for how Daily Tool fits inside `gc-pm-automation`.
 
 ---
 
