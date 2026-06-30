@@ -8,7 +8,9 @@ Documentation is the source of truth.
 
 Always read the documentation before implementing or modifying any feature.
 
-Daily Tool is built **inside the existing `gc-pm-automation` application**, not as a standalone repository or deployment. See ADR-006 (`documents/adr/006-gc-pm-automation-integration.md`) and `claude/INTEGRATION_AUDIT.md` before implementing anything.
+Daily Tool is built **inside the existing `gc-games-dashboard` application** (`c:\Users\Ivan\Desktop\it\IGAMING\tools\gc-games-dashboard`), not as a standalone repository or deployment.
+
+> **ADR-007 (2026-06-30):** Integration target changed from `gc-pm-automation` to `gc-games-dashboard`. See `documents/adr/007-gc-games-dashboard-integration.md` before implementing anything.
 
 ---
 
@@ -78,13 +80,14 @@ Do not mix these concepts.
 
 ## Architecture
 
-- Single Next.js fullstack monolith — the existing `gc-pm-automation` app, not a new one.
-- PostgreSQL is the source of truth — the same Supabase project already backing `gc-pm-automation`.
-- No ORM. Use `@supabase/supabase-js` + generated types, matching the host app's existing pattern.
-- Identity is reused: no separate `users` table — every user is an existing `gc-pm-automation` Profile.
-- Every new table/enum uses a `daily_` prefix.
-- Redis stores runtime state only.
-- BullMQ is used only for background jobs.
+- Single Next.js fullstack monolith — the existing `gc-games-dashboard` app (Next.js 16, `src/` layout).
+- PostgreSQL is the source of truth — Supabase project `hstvuhqqbhzsgkzvgntm` backing `gc-games-dashboard`.
+- No ORM. Use `@supabase/supabase-js` service role, raw `.from().select()`, matching the host app's pattern.
+- Identity: new `daily_users` table keyed by email (from NextAuth session) — no `profiles` table in host.
+- Auth: NextAuth v5 (Google SSO) — no Supabase Auth.
+- Every new table uses a `daily_` prefix.
+- Redis stores runtime state only (v1.5+).
+- BullMQ is used only for background jobs (v2+).
 - GitHub integration starts in v2.
 - AI integration starts in v3.
 

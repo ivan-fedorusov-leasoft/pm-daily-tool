@@ -1,5 +1,7 @@
 # Daily Tool Integration Audit
 
+> ⚠️ **SUPERSEDED by ADR-007 (2026-06-30).** This audit was produced for `gc-pm-automation` integration (ADR-006). The integration target has changed to **`gc-games-dashboard`**. See `documents/adr/007-gc-games-dashboard-integration.md` for the current integration plan. This document is kept for historical reference only.
+
 Produced per `claude/EXISTING_APP_INTEGRATION_AUDIT_PROMPT.md`. Audit only — no code, schema, or config was modified while producing this document.
 
 ---

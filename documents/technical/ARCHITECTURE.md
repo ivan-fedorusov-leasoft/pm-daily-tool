@@ -8,27 +8,27 @@
 
 Defines the high-level architecture and implementation principles of the project.
 
-Daily Tool is built **inside the existing `gc-pm-automation` application**, not as a standalone product. See ADR-006 and `claude/INTEGRATION_AUDIT.md` for the full integration rationale.
+> **ADR-007 (2026-06-30):** Integration target changed. Daily Tool is built **inside the existing `gc-games-dashboard` application**, not `gc-pm-automation` as planned in ADR-006. See `documents/adr/007-gc-games-dashboard-integration.md`.
 
 ---
 
 # Core Principles
 
 - Documentation is the source of truth.
-- PostgreSQL is the source of truth — the Supabase project already backing `gc-pm-automation`.
+- PostgreSQL is the source of truth — the Supabase project backing `gc-games-dashboard` (`hstvuhqqbhzsgkzvgntm`).
 - Redis stores runtime state only.
 - Every feature starts as a manual workflow before automation.
 - AI augments existing workflows, never defines them.
 - The system prioritizes autonomy over centralization.
 - Approval is required only for protected project data.
 - Every significant architectural decision must have an ADR.
-- Daily Tool reuses the host app's infrastructure (auth, hosting, database, layout) wherever it safely can, and isolates its own concerns behind a `daily_` naming prefix and a dedicated route segment.
+- Daily Tool reuses the host app's infrastructure (auth, hosting, database) wherever it safely can, and isolates its own concerns behind a `daily_` naming prefix and a dedicated route segment.
 
 ---
 
 # Architecture Style
 
-Daily Tool is a module inside `gc-pm-automation`'s single Next.js fullstack monolith.
+Daily Tool is a module inside `gc-games-dashboard`'s single Next.js fullstack monolith.
 
 It does not have its own repository, its own deployment, or its own database.
 
@@ -38,16 +38,17 @@ Do not split Daily Tool into a separate frontend/backend service or a separate p
 
 # Host Application Integration
 
-`gc-pm-automation` (Next.js 15, App Router, Supabase) is the host. Daily Tool is additive to it:
+`gc-games-dashboard` (Next.js 16, App Router, Supabase service role, NextAuth v5) is the host. Daily Tool is additive to it:
 
 | Concern | Host app provides | Daily Tool reuses it by |
 |---|---|---|
-| Auth | Supabase Auth, Google OAuth, domain allowlist | No changes — Daily Tool requires no separate login |
-| Identity | `profiles` table (1:1 with `auth.users`) | All `daily_*` tables reference `profiles.id`, no new users table |
-| Roles | `user_role` enum + `profiles.role` | A new, additive, overridable `profiles.daily_role` column derives Developer/Manager/Admin (see Permission Model below); `user_role` itself is never modified |
-| Layout | `app/ui/AppShell.tsx` sidebar shell | Daily Tool pages import and wrap themselves in `<AppShell>` exactly like existing pages (e.g. `app/templates/page.tsx`); one new nav entry is added |
-| Hosting | Vercel project, Supabase project | Shared as-is, no new infra |
-| Route gating | `middleware.ts` redirects unauthenticated → `/login`, not-onboarded → `/onboarding` for any path outside `/login`, `/auth/*`, `/api/*` | Applies to `/daily/*` automatically — no middleware changes needed |
+| Auth | NextAuth v5, Google OAuth, `AUTH_ALLOWED_DOMAIN` gate | No changes — Daily Tool requires no separate login |
+| Identity | `getCurrentUserKey()` → email or `"local"` | New `daily_users` table keyed by email; upserted on sign-in |
+| Roles | None (no role concept in gc-games-dashboard) | New `daily_users.role` column: developer / manager / admin |
+| Layout | No shared layout currently | New `src/app/daily/layout.tsx` — shared nav for BE Radar section |
+| DB access | Service role key, `getSupabase()` singleton | Same pattern — `supabase.from('daily_*').select(...)` |
+| Hosting | Vercel + Supabase `hstvuhqqbhzsgkzvgntm` | Shared as-is, no new infra |
+| Route gating | NextAuth middleware — unauthenticated → `/login` | Applies to `/daily/*` automatically if auth configured |
 
 ---
 
@@ -55,12 +56,13 @@ Do not split Daily Tool into a separate frontend/backend service or a separate p
 
 ## v1
 
-- Next.js 15 (App Router) — the existing `gc-pm-automation` app
-- TypeScript
-- PostgreSQL via Supabase (existing project)
-- `@supabase/supabase-js` + generated `lib/database.types.ts` — no ORM (see ADR-002 amendment)
-- Auth: existing Supabase Auth / Google OAuth — no new auth code
-- Next.js Server Actions, colocated as `actions.ts` per route (matches host convention)
+- Next.js 16 (App Router) — the existing `gc-games-dashboard` app
+- TypeScript, React 19
+- PostgreSQL via Supabase service role (project `hstvuhqqbhzsgkzvgntm`)
+- `@supabase/supabase-js` — no ORM, raw `.from().select()` calls
+- Auth: NextAuth v5 with Google provider — no new auth code
+- Next.js Server Actions, colocated as `actions.ts` per route
+- Types: defined locally in `src/lib/daily/types.ts` — no generated `database.types.ts` needed
 
 ## v1.5
 
@@ -96,32 +98,43 @@ Add:
 
 # Project Structure
 
-Matches `gc-pm-automation`'s actual flat layout (no `src/`, no layered `server/{services,repositories,permissions}` tree — that originally-planned structure is superseded, see ADR-006):
+`gc-games-dashboard` uses a `src/` directory. Daily Tool is additive inside it:
 
 ```text
-app/
-  daily/
-    page.tsx              # redirects to /daily/today
-    today/
-      page.tsx
-      actions.ts
-    radar/
-      page.tsx
-    games/
-      [id]/
+src/
+  app/
+    daily/
+      layout.tsx            # NEW — shared BE Radar nav (top bar or sidebar)
+      page.tsx              # redirects to /daily/today
+      today/
         page.tsx
+        TodayWorkClient.tsx
         actions.ts
-  ui/
-    AppShell.tsx           # existing — one new NAV entry added
+      games/
+        page.tsx
+        [id]/
+          page.tsx
+          GameDetailClient.tsx
+          NoteButtonClient.tsx
+          actions.ts
+      change-requests/
+        page.tsx
+        CrActionsClient.tsx
+        actions.ts
+    api/daily/
+      seed/route.ts         # POST — seed demo data
 
-lib/
-  daily/
-    auth.ts                # requireDailyProfile / requireDailyManager / requireDailyAdmin
-    roles.ts                # daily_role derivation helpers (TS mirror of the SQL helper)
+  lib/daily/
+    types.ts                # All TS types, enums, labels, stageState() helper
+    auth.ts                 # requireDailyProfile / requireDailyManager / requireDailyAdmin
+    roles.ts                # getDailyRole(), isDailyManager(), isDailyAdmin()
+    users.ts                # getCurrentDailyUser() — upserts daily_users on sign-in
     games.ts                # daily_games + daily_game_stage_dates queries
     notes.ts                # daily_notes queries
-    change-requests.ts       # daily_change_requests queries
-  database.types.ts          # existing — regenerated after the Daily Tool migration, additive only
+    change-requests.ts      # daily_change_requests queries
+
+supabase/migrations/
+  0003_daily_tool.sql       # daily_users + all daily_* tables (next after 0002)
 ```
 
 ---
@@ -174,18 +187,18 @@ Daily session control is session-based.
 
 These concepts must never be mixed.
 
-## Roles (derived, not new accounts)
+## Roles (stored in `daily_users`)
 
-Every Daily Tool role is computed from the user's existing `gc-pm-automation` Profile — there are no separate Daily Tool accounts.
+Every Daily Tool role is stored in `daily_users.role`. There are no separate Daily Tool accounts — identity comes from the NextAuth Google session.
 
 ```text
-profiles.daily_role override?
-  yes -> use override (developer | manager | admin)
-  no  -> derive from profiles.role:
-           super_admin -> admin
-           pm          -> manager
-           (anything else: product_owner, backender, frontender, qa_qc) -> developer
+daily_users.role:
+  developer  (default for all new sign-ins)
+  manager
+  admin
 ```
+
+Role is set by admin directly in the DB. On first sign-in, user is upserted into `daily_users` with `role = 'developer'`.
 
 ### Developer
 
@@ -348,17 +361,17 @@ Managers/Admins may edit protected fields directly.
 
 ## Persistent Data
 
-Stored in PostgreSQL, in the shared Supabase project already backing `gc-pm-automation`, in `daily_`-prefixed tables.
+Stored in PostgreSQL, in the Supabase project backing `gc-games-dashboard` (`hstvuhqqbhzsgkzvgntm`), in `daily_`-prefixed tables.
 
-Examples:
+Tables:
 
-- Profiles (reused from `gc-pm-automation`, not owned by Daily Tool)
+- daily_users (owned by Daily Tool — new)
 - daily_games
 - daily_game_stage_dates
 - daily_notes
 - daily_change_requests
 - daily_stage_history
-- daily_pull_requests
+- daily_pull_requests (v2)
 
 ## Runtime Data
 
@@ -487,7 +500,9 @@ Do not implement before their roadmap stage:
 
 Additionally, do not:
 
-- Create a separate users/auth system.
-- Modify `gc-pm-automation`'s `user_role` enum or its existing RLS policies.
-- Introduce a new design system or layout shell.
-- Introduce the originally-planned `server/{services,repositories,permissions}` layered structure — follow the host app's flat `lib/daily/*` + colocated `actions.ts` pattern instead.
+- Create a separate users/auth system — reuse NextAuth session from gc-games-dashboard.
+- Modify gc-games-dashboard's existing tables (`games`, `check_runs`, etc.) or their RLS.
+- Introduce a second design system — follow gc-games-dashboard's raw Tailwind pattern (no primitives.tsx).
+- Use Supabase Auth — gc-games-dashboard uses NextAuth (service role key only, no anon key).
+- Introduce the originally-planned `server/{services,repositories,permissions}` layered structure — use flat `lib/daily/*` + colocated `actions.ts` instead.
+- Add RLS helper functions — service role bypasses RLS; access control is enforced in Server Actions.

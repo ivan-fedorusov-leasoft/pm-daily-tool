@@ -1,8 +1,9 @@
 # BE Radar — Full Specification
 
-> **Status:** Ready for implementation. DB + backend work on owner's signal.  
-> **Built inside:** `gc-pm-automation` repo — same Supabase project, same Vercel deployment, same design system.  
-> **Canonical detail:** individual screen specs in `visualization/`, vault notes in `vault/pm-daily-tool/`.
+> **Status:** Re-targeting to gc-games-dashboard (ADR-007, 2026-06-30). Say "газ" to begin integration.  
+> **Built inside:** `gc-games-dashboard` repo — Supabase `hstvuhqqbhzsgkzvgntm`, NextAuth v5, raw Tailwind CSS.  
+> **ADR-007:** `documents/adr/007-gc-games-dashboard-integration.md` — replaces ADR-006.  
+> **Canonical detail:** screen specs in `visualization/`, vault notes in `vault/pm-daily-tool/`.
 
 ---
 
@@ -19,11 +20,11 @@ An internal PM tool replacing an Excel-based daily status workflow. Developers w
 | Item | Value |
 |---|---|
 | App display name | **BE Radar** |
-| Logo icon | Radar/target SVG (replacing current PM Automation 🎛️ for the Daily section, or sidebar sub-label) |
-| Location | Inside `gc-pm-automation`, under `/daily/*` routes |
-| Sidebar entry | "Daily" nav item already added to `AppShell.tsx` `NAV` |
+| Logo icon | Radar/target SVG |
+| Location | Inside `gc-games-dashboard`, under `/daily/*` routes |
+| Nav | New `src/app/daily/layout.tsx` provides a shared nav for the Daily section |
 
-The host app (`gc-pm-automation`) keeps its own name and branding. BE Radar is the *feature name* visible on the Daily screens.
+The host app (`gc-games-dashboard`) keeps its own name and branding. BE Radar is the *feature name* visible on the Daily screens.
 
 ---
 

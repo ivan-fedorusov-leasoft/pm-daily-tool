@@ -4,17 +4,28 @@
 
 # ROADMAP
 
-## v1 (MVP)
+## v1 (MVP) — 🔄 Re-targeting to gc-games-dashboard (ADR-007, 2026-06-30)
+
+> v1 code was built in gc-pm-automation (paused, migration never applied). Now porting to gc-games-dashboard. See `documents/adr/007-gc-games-dashboard-integration.md`.
 
 ### Features
 
-- Today's Work
-- Game Page
-- Simple Radar
+- Today's Work (`/daily/today`)
+- Game Page (`/daily/games/:id`)
+- Games list (`/daily/games`)
 - Manual Daily Notes
 - Change Requests
 - Stage Management
-- Authentication
+- Authentication (NextAuth v5 reused from gc-games-dashboard)
+
+### v1 integration tasks
+
+1. Write `supabase/migrations/0003_daily_tool.sql`
+2. Port `src/lib/daily/*` — email-based identity (`daily_users`)
+3. Add `src/app/daily/layout.tsx` — shared nav
+4. Port all page components
+5. Apply migration to Supabase `hstvuhqqbhzsgkzvgntm`
+6. Seed demo data
 
 ### References
 
@@ -22,6 +33,7 @@
 - `documents/product/UI_UX.md`
 - `documents/technical/DATABASE.yaml`
 - `documents/technical/API.yaml`
+- `documents/adr/007-gc-games-dashboard-integration.md`
 
 ---
 

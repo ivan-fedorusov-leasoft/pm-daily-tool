@@ -1,30 +1,25 @@
 # Design System Reference — BE Radar
 
-> Authoritative source: `gc-pm-automation/app/globals.css` + `app/ui/primitives.tsx` + `app/ui/AppShell.tsx`
+> **ADR-007:** BE Radar builds inside **gc-games-dashboard**, not gc-pm-automation. This document reflects gc-games-dashboard's design system.
 >
-> BE Radar (pm-daily-tool) builds inside the existing gc-pm-automation app and **inherits its design system entirely**. No second design system, no new Tailwind theme. All tokens below are defined in `@theme` in `globals.css`.
+> Authoritative source: `gc-games-dashboard/src/app/globals.css` + raw Tailwind patterns in components.
 
 ---
 
-## CSS Variables (Tailwind v4 `@theme`)
+## CSS Variables
 
-| CSS Var | Hex | Semantic role |
-|---|---|---|
-| `--color-bg` | `#07080c` | Page background |
-| `--color-surface` | `#0d0f17` | Card / panel background |
-| `--color-surface-2` | `#131725` | Card section / nav active / input bg |
-| `--color-border` | `#1f2435` | Card borders, dividers, input borders |
-| `--color-border-strong` | `#2c3350` | Stronger borders (e.g. active item outline) |
-| `--color-text` | `#e7e9f3` | Primary text |
-| `--color-muted` | `#8a90a8` | Secondary text, labels, placeholders |
-| `--color-faint` | `#565d78` | Very muted — hints, timestamps, counters |
-| `--color-accent` | `#6366f1` | Interactive — links, primary buttons, active states |
-| `--color-accent-soft` | `#312e81` | Accent background (subdued) |
-| `--color-ok` | `#34d399` | Success, active status, approved, merged |
-| `--color-warn` | `#fbbf24` | Warning, pending, needs-attention |
-| `--color-err` | `#f87171` | Error, declined, danger |
-| `--radius-card` | `16px` | Card border-radius |
-| `--accent` | runtime | Per-stream accent, injected by AppShell on `<body>`. Falls back to `#6366f1` |
+Defined in `globals.css` under `:root` and exposed as Tailwind custom colors via `@theme inline`:
+
+| CSS Var | Tailwind token | Hex | Semantic role |
+|---|---|---|---|
+| `--background` | `bg-background` | `#07090d` | Page bg |
+| `--panel` | `bg-panel` | `#0d1117` | Card / panel bg (`.panel` class) |
+| `--panel-2` | `bg-panel-2` | `#11161f` | Nested panel, input bg |
+| `--border` | `border-border-soft` | `#1d2430` | All borders, dividers |
+| `--foreground` | `text-foreground` | `#e6edf3` | Primary text |
+| `--muted` | `text-muted` | `#8b97a8` | Secondary text, labels, metadata |
+
+No accent/ok/warn/err vars — status colors are Tailwind semantic classes (emerald/amber/rose/violet).
 
 ---
 
@@ -33,187 +28,197 @@
 ```css
 body {
   background:
-    radial-gradient(1100px 600px at 80% -10%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%),
-    radial-gradient(900px 500px at 0% 0%,  color-mix(in oklab, var(--accent)  8%, transparent), transparent 55%),
-    var(--color-bg);
+    radial-gradient(1200px 600px at 80% -10%, rgba(56, 189, 248, 0.06), transparent),
+    radial-gradient(900px 500px at -10% 10%, rgba(244, 114, 182, 0.05), transparent),
+    var(--background);
+  color: var(--foreground);
 }
 ```
 
-Subtle gradient glow in top-right, softer glow top-left, deep dark base. The sidebar uses the `glass` utility:
+Dark, near-black with subtle sky-blue and pink radial glows at the corners.
+
+---
+
+## Utility classes
+
+### `.panel`
 ```css
-.glass {
-  background: color-mix(in oklab, var(--color-surface) 80%, transparent);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border);
-}
+.panel { background: var(--panel); border: 1px solid var(--border); }
 ```
+Used for all cards, tables, panels. Always pair with `rounded-xl` or `rounded-lg`.
 
----
-
-## Core Components (from `primitives.tsx`)
-
-### Card
-```tsx
-<div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)]
-  shadow-[0_1px_0_rgba(255,255,255,0.03)_inset,0_20px_50px_-30px_rgba(0,0,0,0.8)]" />
-```
-- Border-radius: **16px**
-- Background: `--color-surface`
-- Border: `--color-border`
-- Inset top highlight + deep drop shadow
-
-### Button
-```tsx
-// Base: rounded-xl h-10 px-4 text-sm font-medium + transitions
-// Size sm: h-8 px-3 text-xs
-```
-
-| Variant | Style |
-|---|---|
-| `primary` | `bg-[var(--accent)] text-white hover:brightness-110 shadow-accent-glow` |
-| `ghost` | `bg-transparent border border-[var(--color-border)] hover:bg-[var(--color-surface-2)]` |
-| `subtle` | `text-[var(--color-muted)] hover:text-text hover:bg-[var(--color-surface-2)]` |
-| `danger` | `text-[var(--color-err)] border border-[var(--color-err)]/30 hover:bg-[var(--color-err)]/10` |
-
-- Border-radius: `rounded-xl` = **12px**
-- All buttons: `disabled:opacity-50`, `active:scale-[0.98]`, focus ring accent/50
-
-### Badge
-```tsx
-// rounded-full border px-2.5 py-0.5 text-xs font-medium
-```
-
-| Tone | Background | Text | Border |
-|---|---|---|---|
-| `default` | `--color-surface-2` | `--color-muted` | `--color-border` |
-| `accent` | `--color-accent`/15 | `--color-accent` | `--color-accent`/30 |
-| `ok` | `--color-ok`/12 | `--color-ok` | `--color-ok`/25 |
-| `warn` | `--color-warn`/12 | `--color-warn` | `--color-warn`/25 |
-
-> **No `err` tone in primitives** — for "Declined" / "On Hold" use a custom class:  
-> `bg-[var(--color-err)]/12 text-[var(--color-err)] border-[var(--color-err)]/25`
-
-### PageTitle
-```tsx
-<h1 className="text-2xl font-semibold tracking-tight" />
-<p className="mt-1 text-sm text-[var(--color-muted)]" />  // subtitle
-```
-- Title: **24px / 600 / tracking-tight**
-- Subtitle: **14px / muted**
-
-### EmptyState
-```tsx
-<div className="rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] py-16 text-center" />
-```
-
----
-
-## AppShell (from `AppShell.tsx`)
-
-### Sidebar
-```tsx
-<aside className="sticky top-0 h-dvh w-64 glass px-4 py-5" />
-```
-- Width: **256px** (`w-64`)
-- Position: sticky, full viewport height
-- Style: `glass` (backdrop-blur + semi-transparent surface)
-- Right border: `1px solid var(--color-border)`
-
-### Logo block
-```tsx
-<span className="h-9 w-9 rounded-xl bg-[var(--accent)]/15 text-lg grid place-items-center">🎛️</span>
-// App name: text-sm font-semibold
-// Subtitle (stream): text-xs text-muted
-```
-> For BE Radar: icon changes to radar SVG, name changes to "BE Radar". Same dimensions and structure.
-
-### Nav items
-```tsx
-// Active:   bg-[var(--accent)]/12 text-[var(--color-text)]   + icon text-accent
-// Inactive: text-[var(--color-muted)] hover:bg-surface-2 hover:text-text
-// Shape:    rounded-xl px-3 py-2 text-sm
-```
-
-### UserCard (bottom)
-```tsx
-<div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3" />
-// Avatar: h-9 w-9 rounded-full
-// Fallback: accent/20 bg, initial letter
-// Role: Badge tone="accent"
-// Sign out: text-faint hover:text-err
-```
-
-### Main content area
-```tsx
-<div className="mx-auto max-w-5xl px-5 py-8 md:px-10 md:py-10" />
-```
-- Max width: **1024px** (max-w-5xl)
-- Padding: 20px mobile, 40px desktop
-
----
-
-## Game Status → Badge Tone Mapping
-
-| Status | Tone | CSS |
-|---|---|---|
-| Active | `ok` | `--color-ok` green |
-| Planned | `accent` | `--color-accent` purple |
-| In Progress | `warn` | `--color-warn` amber |
-| On Hold | custom err | `--color-err` red |
-| Paused | `default` | muted |
-| Completed | `default` | muted |
-
-## Change Request Status → Badge Tone
-
-| Status | Tone |
-|---|---|
-| Pending | `warn` |
-| Approved | `ok` |
-| Declined/Rejected | custom err |
-
-## PR Status → Badge Tone
-
-| Status | Tone |
-|---|---|
-| In Review | `accent` |
-| Merged | `ok` |
-| Closed | custom err |
-
----
-
-## Typography Scale (reference)
-
-| Use | Tailwind | Size |
-|---|---|---|
-| Page title (`<h1>`) | `text-2xl font-semibold tracking-tight` | 24px/600 |
-| Section heading | `text-lg font-semibold` | 18px/600 |
-| Card title | `font-medium` | 16px/500 |
-| Body | `text-sm` | 14px/400 |
-| Labels / metadata | `text-xs text-[var(--color-muted)]` | 12px/muted |
-| Faint hints | `text-xs text-[var(--color-faint)]` | 12px/faint |
-
-Font family: `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`  
-Anti-aliasing: `-webkit-font-smoothing: antialiased`
-
----
-
-## Animate-in utility
-
+### `.mono`
 ```css
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-in { animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.mono { font-family: var(--font-mono), ui-monospace, "SF Mono", monospace; }
+```
+Used for game codes, hash values, technical strings.
+
+### `.pulse-down`
+```css
+animation: pulse-down 2.4s ease-in-out infinite;
+/* rose glow pulse — used on "down" status indicators */
 ```
 
-Use `animate-in` on cards/panels that appear after navigation.
+---
+
+## Fonts
+
+- **Sans:** Geist (loaded via `next/font/google`, var `--font-geist-sans`)
+- **Mono:** Geist Mono (var `--font-geist-mono`)
+
+```tsx
+// In layout.tsx:
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
+```
+
+---
+
+## Layout
+
+gc-games-dashboard has **no sidebar, no persistent nav**. Pages are centered content blocks:
+```tsx
+<div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+```
+
+**For BE Radar integration:** a shared layout must be added — either a top nav bar or left sidebar — scoped to `/daily/*` routes via `src/app/daily/layout.tsx`.
+
+Recommended approach: **top nav bar** (fits the existing aesthetic better than a sidebar — gc-games-dashboard is content-first, no chrome-heavy sidebar).
+
+---
+
+## Typography
+
+| Use | Classes | Size |
+|---|---|---|
+| Page title (`<h1>`) | `text-xl font-semibold tracking-tight sm:text-2xl` | 20–24px |
+| Section heading | `text-sm font-semibold uppercase tracking-wide text-muted` | 12px caps |
+| Card title / game name | `font-semibold` | 16px |
+| Body | `text-sm` | 14px |
+| Metadata / labels | `text-xs text-muted` | 12px |
+| Monospace code | `.mono text-sm` | 14px mono |
+
+---
+
+## Buttons (no component — raw Tailwind)
+
+gc-games-dashboard has no `Button` component. Copy these patterns:
+
+```tsx
+// Default (ghost-style):
+className="rounded-lg border border-border-soft bg-panel-2 px-3 py-2 text-sm 
+           transition hover:border-slate-500/60 disabled:opacity-50"
+
+// Primary (sky accent):
+className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm 
+           font-medium text-sky-200 transition hover:bg-sky-500/20 disabled:opacity-50"
+
+// Destructive:
+className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm 
+           font-medium text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
+```
+
+---
+
+## Inputs
+
+```tsx
+className="rounded-lg border border-border-soft bg-panel-2 px-3 py-2 text-sm 
+           outline-none placeholder:text-muted focus:border-sky-500/50"
+```
+
+---
+
+## Status colors
+
+gc-games-dashboard uses these for game monitoring statuses. BE Radar will reuse the same color conventions for different semantic meanings.
+
+| Status / Tone | Dot | Text | Ring/Border | Badge bg |
+|---|---|---|---|---|
+| `operatable` / success / ok | `bg-emerald-400` | `text-emerald-300` | `border-emerald-500/30` | `bg-emerald-500/10` |
+| `merged_not_updated` / warning / pending | `bg-amber-400` | `text-amber-300` | `border-amber-500/30` | `bg-amber-500/10` |
+| `down` / error / rejected | `bg-rose-400` | `text-rose-300` | `border-rose-500/30` | `bg-rose-500/10` |
+| `not_setup` / info / accent | `bg-violet-400` | `text-violet-300` | `border-violet-500/30` | `bg-violet-500/10` |
+| `unknown` / muted / default | `bg-slate-500` | `text-slate-400` | `border-slate-600/40` | `bg-slate-500/10` |
+| UPDATED badge (bumped) | — | `text-sky-200` | — | `bg-sky-500/20` |
+
+---
+
+## BE Radar status → color mapping
+
+| BE Radar concept | Color |
+|---|---|
+| Game `active` | emerald (ok) |
+| Game `planned` | violet (info) |
+| Game `paused` / `cancelled` | slate (muted) |
+| Game `completed` | emerald (ok) |
+| CR `pending` | amber (warning) |
+| CR `approved` | emerald (ok) |
+| CR `rejected` | rose (error) |
+| Stage completed ✓ | emerald |
+| Stage current ● | sky-200 |
+| Stage future ○ | slate-600 |
+
+---
+
+## Panels / Cards
+
+```tsx
+// Standard panel:
+<div className="panel rounded-xl px-4 py-4">
+
+// Table panel:
+<div className="panel overflow-hidden rounded-xl">
+  <div className="overflow-x-auto">
+    <table className="w-full text-sm">
+
+// Section heading inside page:
+<h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
+```
+
+---
+
+## Badges (no component — inline spans)
+
+```tsx
+// emerald ok:
+<span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">OK</span>
+
+// amber warning:
+<span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">PENDING</span>
+
+// rose error:
+<span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300">REJECTED</span>
+
+// slate muted:
+<span className="rounded bg-slate-500/15 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">muted label</span>
+
+// sky info/updated:
+<span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-200">UPDATED</span>
+```
+
+---
+
+## Empty / loading states
+
+```tsx
+// Empty:
+<div className="panel rounded-xl px-4 py-6 text-center text-sm text-muted">
+  Nothing here yet.
+</div>
+
+// Error/degraded banner:
+<div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+  Warning message
+</div>
+```
 
 ---
 
 ## Scrollbar
 
 ```css
-scrollbar-width: thin;
-scrollbar-color: var(--color-border-strong) transparent;
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #232b36; border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ```
