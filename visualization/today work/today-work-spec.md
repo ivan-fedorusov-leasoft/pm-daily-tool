@@ -1,9 +1,9 @@
 # Frontend Spec — Today's Work Screen
 
 > Source: `today work.png`  
-> App: **BE Radar** (inside gc-pm-automation)  
-> Route: `/daily/today`  
-> Design system: see [design-system.md](../design-system.md) — all tokens from `gc-pm-automation/app/globals.css` + `primitives.tsx`
+> App: **BE Radar** (inside gc-games-dashboard)  
+> Route: `/radar/today`  
+> Design system: see [design-system.md](../design-system.md) — tokens from `gc-games-dashboard/src/app/globals.css`, raw Tailwind, no primitives.tsx
 
 ---
 
@@ -34,7 +34,7 @@
 
 ---
 
-## Design Tokens (real CSS vars from gc-pm-automation)
+## Design Tokens (real CSS vars from gc-games-dashboard)
 
 | Role | CSS Var | Hex |
 |---|---|---|
@@ -60,7 +60,7 @@
 
 ## Left Sidebar
 
-Fully reuses `<AppShell>` from gc-pm-automation. **No changes to AppShell structure** — one new "Daily" nav entry already added.
+BE Radar navigation is in `src/app/radar/layout.tsx`. The host app has no shared sidebar — this layout wraps all `/radar/*` routes.
 
 - **Width:** `w-64` = 256px, sticky, `h-dvh`
 - **Style:** `glass` utility — `backdrop-filter: blur(12px)` + `bg-[var(--color-surface)]/80` + `border-r border-[var(--color-border)]`
@@ -83,11 +83,11 @@ Fully reuses `<AppShell>` from gc-pm-automation. **No changes to AppShell struct
 
 | Icon | Label | Route |
 |---|---|---|
-| 🏠 | Today | `/daily/today` |
-| 🎮 | Games | `/daily/games` |
-| 📋 | Change Requests | `/daily/change-requests` |
-| 📝 | Notes | `/daily/notes` |
-| 📅 | Daily | `/daily/mode` |
+| 🏠 | Today | `/radar/today` |
+| 🎮 | Games | `/radar/games` |
+| 📋 | Change Requests | `/radar/change-requests` |
+| 📝 | Notes | `/radar/notes` |
+| 📅 | Daily | `/radar/mode` |
 | ⚙️ | Settings | `/settings` |
 
 ### User block (bottom)
@@ -242,38 +242,41 @@ View all requests →
 ## Component List
 
 ```
-<AppShell user={profile}>
-  <PageTitle title="Today's Work" subtitle={date} />
+// src/app/radar/today/page.tsx (Server Component)
+// Layout wrapping: src/app/radar/layout.tsx
+<RadarLayout user={user}>
+  <PageHeader title="Today's Work" subtitle={date}>
+    <button className="...">+ New Game</button>
+  </PageHeader>
 
   <div className="mb-2 flex items-center justify-between">
     <SectionHeader label="Your Active Games" info />
-    <Button variant="primary" icon="plus">New Game</Button>
   </div>
 
   <div className="grid gap-4">
     {games.map(g => (
-      <Card key={g.id} className="animate-in">
+      <div key={g.id} className="panel animate-in rounded-lg border border-[--border]">
         <GameCardTop>
           <GameIdentity image title status client mathOwner />
           <GameStages current next />
           {g.needs_lead_attention && <AlertBadge />}
         </GameCardTop>
-        <GameCardBottom className="bg-[var(--color-surface-2)] border-t border-[var(--color-border)]">
+        <GameCardBottom className="bg-[--panel-2] border-t border-[--border]">
           <LastNotePanel note={g.lastNote} onWriteStatus={...} />
           <PullRequestsPanel prs={g.pullRequests} />
           <ChangeRequestsPanel requests={g.changeRequests} />
         </GameCardBottom>
-      </Card>
+      </div>
     ))}
   </div>
-</AppShell>
+</RadarLayout>
 ```
 
 ---
 
 ## Open Questions / TBD
 
-- [ ] What triggers "Need Team Lead Attention" alert — `daily_notes.needs_lead_attention` flag
+- [ ] What triggers "Need Team Lead Attention" alert — `radar_notes.needs_lead_attention` flag
 - [ ] Clicking Math Owner name — filter by math owner or profile page?
 - [ ] `Write Status` — opens Write Note Modal (`write-note-modal-spec.md`)
 - [ ] `View all PRs` / `View all requests` — side panel or navigate to sub-page?

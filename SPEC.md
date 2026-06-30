@@ -1,15 +1,15 @@
 # BE Radar — Full Specification
 
-> **Status:** Re-targeting to gc-games-dashboard (ADR-007, 2026-06-30). Say "газ" to begin integration.  
-> **Built inside:** `gc-games-dashboard` repo — Supabase `hstvuhqqbhzsgkzvgntm`, NextAuth v5, raw Tailwind CSS.  
-> **ADR-007:** `documents/adr/007-gc-games-dashboard-integration.md` — replaces ADR-006.  
+> **Status:** Re-targeting to gc-games-dashboard (ADR-007, 2026-06-30). Say "газ" to begin integration.
+> **Built inside:** `gc-games-dashboard` repo — Supabase `hstvuhqqbhzsgkzvgntm`, NextAuth v5, raw Tailwind CSS.
+> **ADR-007:** `documents/adr/007-gc-games-dashboard-integration.md` — replaces ADR-006.
 > **Canonical detail:** screen specs in `visualization/`, vault notes in `vault/pm-daily-tool/`.
 
 ---
 
 ## 1. What Is BE Radar
 
-An internal PM tool replacing an Excel-based daily status workflow. Developers write daily notes on their assigned games; managers review and approve/reject change requests; anyone can host a Daily meeting. Eventually integrates GitHub (v2) and AI summaries (v3).
+An internal PM tool replacing an Excel-based status workflow. Developers write notes on their assigned games; managers review and approve/reject change requests; anyone can host a Daily meeting via Daily Mode. Eventually integrates GitHub (v2) and AI summaries (v3).
 
 **Not:** a Jira replacement, a task tracker, a kanban board, a full PM suite.
 
@@ -21,301 +21,266 @@ An internal PM tool replacing an Excel-based daily status workflow. Developers w
 |---|---|
 | App display name | **BE Radar** |
 | Logo icon | Radar/target SVG |
-| Location | Inside `gc-games-dashboard`, under `/daily/*` routes |
-| Nav | New `src/app/daily/layout.tsx` provides a shared nav for the Daily section |
+| Location | Inside `gc-games-dashboard`, under `/radar/*` routes |
+| Nav | New `src/app/radar/layout.tsx` — shared nav for the BE Radar section |
 
-The host app (`gc-games-dashboard`) keeps its own name and branding. BE Radar is the *feature name* visible on the Daily screens.
+`gc-games-dashboard` keeps its own name and branding. BE Radar is the *feature name* visible on the Radar screens.
 
 ---
 
 ## 3. Naming Conventions
 
-### Table / Enum Prefix
+### Table Prefix
 
-All new Postgres tables and enums use the **`daily_`** prefix.
+All new Postgres tables use the **`radar_`** prefix to avoid collisions with `gc-games-dashboard`'s existing tables (`games`, `check_runs`, `status_events`, `scheduled_checks`, `starred_games`).
 
-**Rationale:** Describes the feature (Daily meeting workflow), not the app name. Semantic, stable, already decided in ADR-006. `ber_` (BE Radar abbreviation) is an alternative but would lose meaning if the app is ever renamed again. **Decision: keep `daily_`.**
+### Screen Names
 
-### Screen Names (updated)
+| Screen | Route |
+|---|---|
+| Today's Work | `/radar/today` |
+| Games | `/radar/games` |
+| Game Page | `/radar/games/:id` |
+| Daily Mode | `/radar/mode` |
+| Change Requests | `/radar/change-requests` |
 
-| Screen | Old name | New name | Route |
-|---|---|---|---|
-| Daily landing | — | Today's Work | `/daily/today` |
-| Games overview | Simple Radar | **Games** | `/daily/games` |
-| Individual game | Game Page | Game Page | `/daily/games/:id` |
-| Meeting mode | Daily Mode | Daily Mode | `/daily/mode` |
-| Change requests | Change Requests | Change Requests | `/daily/change-requests` |
-
-### DB Enum Values (authoritative)
+### DB Column/Check Values (authoritative)
 
 ```
-daily_game_status:        planned, active, paused, cancelled, completed
-daily_game_stage:         start_date, playable, alpha, beta, gold, master,
-                          eta_release_exclusive, eta_release_com
-daily_change_request_status: pending, approved, rejected
-daily_note_source:        manual, transcript
-daily_session_status:     active, finished, cancelled
-daily_role:               developer, manager, admin
+role values (radar_users.role):   developer, manager, admin
+radar_game_status:                planned, active, paused, cancelled, completed
+radar_game_stage:                 start_date, playable, alpha, beta, gold, master,
+                                  eta_release_exclusive, eta_release_com
+radar_change_request_status:      pending, approved, rejected
+radar_note_source:                manual, transcript
+radar_session_status:             active, finished, cancelled
 ```
 
 ---
 
 ## 4. Design System
 
-All styles come from `gc-pm-automation/app/globals.css` and `primitives.tsx`. **No new Tailwind theme, no new design tokens, no component library.**
+All styles come from `gc-games-dashboard/src/app/globals.css` — raw Tailwind CSS, no component library.
 
 ### Key tokens
 
-| Token | Hex | Use |
-|---|---|---|
-| `--color-bg` | `#07080c` | Page bg |
-| `--color-surface` | `#0d0f17` | Card bg |
-| `--color-surface-2` | `#131725` | Card section, nav active, inputs |
-| `--color-border` | `#1f2435` | All borders |
-| `--color-border-strong` | `#2c3350` | Hover/active borders |
-| `--color-text` | `#e7e9f3` | Primary text |
-| `--color-muted` | `#8a90a8` | Labels, secondary text |
-| `--color-faint` | `#565d78` | Timestamps, hints |
-| `--color-accent` | `#6366f1` | Links, buttons, active state |
-| `--color-ok` | `#34d399` | Active, approved, merged, success |
-| `--color-warn` | `#fbbf24` | Pending, team-lead flag |
-| `--color-err` | `#f87171` | Declined, rejected, error |
-| `--radius-card` | `16px` | Card border-radius |
+| Token | Tailwind | Hex | Use |
+|---|---|---|---|
+| `--background` | `bg-background` | `#07090d` | Page bg |
+| `--panel` | `bg-panel` | `#0d1117` | Card/panel bg |
+| `--panel-2` | `bg-panel-2` | `#11161f` | Nested panel, input bg |
+| `--border` | `border-border-soft` | `#1d2430` | Borders |
+| `--foreground` | `text-foreground` | `#e6edf3` | Primary text |
+| `--muted` | `text-muted` | `#8b97a8` | Secondary text, labels |
 
-### Reused components
+### `.panel` utility
+```css
+.panel { background: var(--panel); border: 1px solid var(--border); }
+```
+Always pair with `rounded-xl` or `rounded-lg`.
 
-- `<Card>` — all panels and cards
-- `<Button variant="primary|ghost|subtle|danger">` — all interactive buttons
-- `<Badge tone="default|accent|ok|warn">` — status pills (add custom `err` class for Declined)
-- `<PageTitle>` — `text-2xl font-semibold tracking-tight`
-- `<EmptyState>` — empty list states
-- `<AppShell>` — sidebar + main layout wrapper on every page
+### Status colors (raw Tailwind)
 
-### Badge → Tone mapping
+| Status / Tone | Text | Dot | Badge bg |
+|---|---|---|---|
+| ok / active / approved | `text-emerald-300` | `bg-emerald-400` | `bg-emerald-500/10` |
+| warn / pending | `text-amber-300` | `bg-amber-400` | `bg-amber-500/10` |
+| error / rejected | `text-rose-300` | `bg-rose-400` | `bg-rose-500/10` |
+| info / planned | `text-violet-300` | `bg-violet-400` | `bg-violet-500/10` |
+| muted / default | `text-slate-400` | `bg-slate-500` | `bg-slate-500/10` |
 
-| Status | Tone |
-|---|---|
-| Active | `ok` |
-| Planned | `accent` |
-| In Progress | `warn` |
-| On Hold | custom err |
-| Pending CR | `warn` |
-| Approved CR | `ok` |
-| Declined/Rejected CR | custom err |
-| In Review PR | `accent` |
-| Merged PR | `ok` |
-
-See full design details: [visualization/design-system.md](visualization/design-system.md)
+See full details: [visualization/design-system.md](visualization/design-system.md)
 
 ---
 
 ## 5. Routes & Pages
 
+All routes under `/radar/*`. A shared `src/app/radar/layout.tsx` provides the BE Radar nav.
+
 | Route | File | Guard | Purpose |
 |---|---|---|---|
-| `/daily` | `app/daily/page.tsx` | `requireProfile()` | Redirect → `/daily/today` |
-| `/daily/today` | `app/daily/today/page.tsx` + `actions.ts` | `requireProfile()` | Today's Work — write daily notes |
-| `/daily/games` | `app/daily/games/page.tsx` | `requireProfile()` | Games list (was Radar) |
-| `/daily/games/:id` | `app/daily/games/[id]/page.tsx` + `actions.ts` | `requireProfile()` | Individual game page |
-| `/daily/change-requests` | `app/daily/change-requests/page.tsx` + `actions.ts` | `requireProfile()` | All change requests |
-| `/daily/mode` | `app/daily/mode/page.tsx` | `requireProfile()` | Daily Mode (v1.5) |
-
-**No new middleware changes** — existing `middleware.ts` applies `/daily/*` auth gate automatically.
+| `/radar` | `src/app/radar/page.tsx` | `requireRadarProfile()` | Redirect → `/radar/today` |
+| `/radar/today` | `src/app/radar/today/page.tsx` + `actions.ts` | `requireRadarProfile()` | Today's Work |
+| `/radar/games` | `src/app/radar/games/page.tsx` | `requireRadarProfile()` | Games list |
+| `/radar/games/:id` | `src/app/radar/games/[id]/page.tsx` + `actions.ts` | `requireRadarProfile()` | Game Page |
+| `/radar/change-requests` | `src/app/radar/change-requests/page.tsx` + `actions.ts` | `requireRadarProfile()` | All change requests |
+| `/radar/mode` | `src/app/radar/mode/page.tsx` | `requireRadarProfile()` | Daily Mode (v1.5) |
 
 ---
 
 ## 6. Screen Specs (detail files)
 
-| Screen | Spec file | Folder |
-|---|---|---|
-| Today's Work | [today-work-spec.md](visualization/today%20work/today-work-spec.md) | `visualization/today work/` |
-| Write Note Modal | [write-note-modal-spec.md](visualization/today%20work%20-%20add%20note/write-note-modal-spec.md) | `visualization/today work - add note/` |
-| Games (list) | [games-list-spec.md](visualization/games/games-list-spec.md) | `visualization/games/` |
-| Game Page | [game-page-spec.md](visualization/one%20game%20card/game-page-spec.md) | `visualization/one game card/` |
-| Change Requests | [change-requests-spec.md](visualization/change%20request/change-requests-spec.md) | `visualization/change request/` |
-| Daily Mode | [daily-mode-spec.md](visualization/daily%20mode/daily-mode-spec.md) | `visualization/daily mode/` |
+| Screen | Spec file |
+|---|---|
+| Today's Work | [today-work-spec.md](visualization/today%20work/today-work-spec.md) |
+| Write Note Modal | [write-note-modal-spec.md](visualization/today%20work%20-%20add%20note/write-note-modal-spec.md) |
+| Games (list) | [games-list-spec.md](visualization/games/games-list-spec.md) |
+| Game Page | [game-page-spec.md](visualization/one%20game%20card/game-page-spec.md) |
+| Change Requests | [change-requests-spec.md](visualization/change%20request/change-requests-spec.md) |
+| Daily Mode | [daily-mode-spec.md](visualization/daily%20mode/daily-mode-spec.md) |
 
 ---
 
 ## 7. Database Schema
 
-Runs in the **same Supabase project** as gc-pm-automation. No new Supabase project, no new auth.
+Runs in **gc-games-dashboard's Supabase project** (`hstvuhqqbhzsgkzvgntm`). Service role key only — no Supabase Auth, no RLS enforcement (service role bypasses). Access control is in Server Actions.
 
-### New migration file: `0005_daily_tool.sql`
+### Migration file: `supabase/migrations/0003_radar.sql`
 
-#### New enums
+No Postgres enums — text columns with CHECK constraints (easier to extend without migrations).
 
 ```sql
-CREATE TYPE daily_role AS ENUM ('developer', 'manager', 'admin');
-CREATE TYPE daily_game_status AS ENUM ('planned', 'active', 'paused', 'cancelled', 'completed');
-CREATE TYPE daily_game_stage AS ENUM (
-  'start_date', 'playable', 'alpha', 'beta', 'gold',
-  'master', 'eta_release_exclusive', 'eta_release_com'
+-- User profiles for BE Radar (keyed by NextAuth email)
+CREATE TABLE IF NOT EXISTS public.radar_users (
+  email        text PRIMARY KEY,
+  name         text NOT NULL,
+  avatar_url   text,
+  role         text NOT NULL DEFAULT 'developer'
+                 CHECK (role IN ('developer', 'manager', 'admin')),
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
 );
-CREATE TYPE daily_change_request_status AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE daily_note_source AS ENUM ('manual', 'transcript');
-```
 
-#### Additive column on existing `profiles` table
-
-```sql
-ALTER TABLE profiles ADD COLUMN daily_role daily_role;
--- nullable — NULL means "derive from profiles.role"
--- super_admin → admin, pm → manager, everything else → developer
-```
-
-#### New tables (v1)
-
-```sql
 -- Math contacts (not app users — no login)
-CREATE TABLE daily_math_owners (
+CREATE TABLE IF NOT EXISTS public.radar_math_owners (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       varchar NOT NULL,
+  name       text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- Main game/project records
-CREATE TABLE daily_games (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  title          varchar NOT NULL,
-  client         varchar,
-  developer_id   uuid NOT NULL REFERENCES profiles(id),
-  math_owner_id  uuid REFERENCES daily_math_owners(id),
-  current_stage  daily_game_stage,
-  status         daily_game_status NOT NULL DEFAULT 'planned',
-  created_at     timestamptz NOT NULL DEFAULT now(),
-  updated_at     timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS public.radar_games (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title           text NOT NULL,
+  client          text,
+  developer_email text NOT NULL REFERENCES public.radar_users(email),
+  math_owner_id   uuid REFERENCES public.radar_math_owners(id),
+  current_stage   text CHECK (current_stage IN (
+                    'start_date','playable','alpha','beta','gold',
+                    'master','eta_release_exclusive','eta_release_com'
+                  )),
+  status          text NOT NULL DEFAULT 'planned'
+                    CHECK (status IN ('planned','active','paused','cancelled','completed')),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
 );
 -- Protected fields (manager/admin only direct edit):
--- title, client, developer_id, math_owner_id, current_stage, status
+-- title, client, developer_email, math_owner_id, current_stage, status
 
 -- Stage target dates
-CREATE TABLE daily_game_stage_dates (
+CREATE TABLE IF NOT EXISTS public.radar_game_stage_dates (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_id     uuid NOT NULL REFERENCES daily_games(id) ON DELETE CASCADE,
-  stage       daily_game_stage NOT NULL,
+  game_id     uuid NOT NULL REFERENCES public.radar_games(id) ON DELETE CASCADE,
+  stage       text NOT NULL CHECK (stage IN (
+                'start_date','playable','alpha','beta','gold',
+                'master','eta_release_exclusive','eta_release_com'
+              )),
   target_date date,
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now(),
   UNIQUE (game_id, stage)
 );
 
--- Daily progress notes
-CREATE TABLE daily_notes (
+-- Progress notes
+CREATE TABLE IF NOT EXISTS public.radar_notes (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_id              uuid NOT NULL REFERENCES daily_games(id) ON DELETE CASCADE,
-  author_id            uuid NOT NULL REFERENCES profiles(id),
+  game_id              uuid NOT NULL REFERENCES public.radar_games(id) ON DELETE CASCADE,
+  author_email         text NOT NULL REFERENCES public.radar_users(email),
   date                 date NOT NULL,
   summary              text NOT NULL,
   needs_lead_attention boolean NOT NULL DEFAULT false,
-  source               daily_note_source NOT NULL DEFAULT 'manual',
-  created_at           timestamptz NOT NULL DEFAULT now(),
-  updated_at           timestamptz NOT NULL DEFAULT now()
+  source               text NOT NULL DEFAULT 'manual'
+                         CHECK (source IN ('manual','transcript')),
+  created_at           timestamptz NOT NULL DEFAULT now()
 );
 
 -- Proposed field changes (require approval)
-CREATE TABLE daily_change_requests (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_id      uuid NOT NULL REFERENCES daily_games(id) ON DELETE CASCADE,
-  requested_by uuid NOT NULL REFERENCES profiles(id),
-  field_name   varchar NOT NULL,
-  old_value    text,
-  new_value    text NOT NULL,
-  status       daily_change_request_status NOT NULL DEFAULT 'pending',
-  reviewed_by  uuid REFERENCES profiles(id),
-  reviewed_at  timestamptz,
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  updated_at   timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS public.radar_change_requests (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id        uuid NOT NULL REFERENCES public.radar_games(id) ON DELETE CASCADE,
+  requested_by   text NOT NULL REFERENCES public.radar_users(email),
+  field_name     text NOT NULL,
+  old_value      text,
+  new_value      text NOT NULL,
+  status         text NOT NULL DEFAULT 'pending'
+                   CHECK (status IN ('pending','approved','rejected')),
+  reviewed_by    text REFERENCES public.radar_users(email),
+  reviewed_at    timestamptz,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
 );
 
 -- Stage transition audit trail
-CREATE TABLE daily_stage_history (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_id    uuid NOT NULL REFERENCES daily_games(id) ON DELETE CASCADE,
-  from_stage daily_game_stage,
-  to_stage   daily_game_stage NOT NULL,
-  changed_by uuid NOT NULL REFERENCES profiles(id),
-  created_at timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS public.radar_stage_history (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id      uuid NOT NULL REFERENCES public.radar_games(id) ON DELETE CASCADE,
+  from_stage   text,
+  to_stage     text NOT NULL,
+  changed_by   text NOT NULL REFERENCES public.radar_users(email),
+  created_at   timestamptz NOT NULL DEFAULT now()
 );
+
+-- Enable RLS (service role bypasses, anon gets nothing)
+ALTER TABLE public.radar_users          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.radar_math_owners    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.radar_games          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.radar_game_stage_dates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.radar_notes          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.radar_change_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.radar_stage_history  ENABLE ROW LEVEL SECURITY;
 ```
 
-#### New tables (v1.5 — Daily Mode)
+#### v1.5 — Daily Mode tables
 
 ```sql
-CREATE TYPE daily_session_status AS ENUM ('active', 'finished', 'cancelled');
-
-CREATE TABLE daily_sessions (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  host_user_id uuid NOT NULL REFERENCES profiles(id),
-  date         date NOT NULL,
-  status       daily_session_status NOT NULL DEFAULT 'active',
-  started_at   timestamptz NOT NULL DEFAULT now(),
-  finished_at  timestamptz,
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  updated_at   timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS public.radar_sessions (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  host_email  text NOT NULL REFERENCES public.radar_users(email),
+  date        date NOT NULL,
+  status      text NOT NULL DEFAULT 'active'
+                CHECK (status IN ('active','finished','cancelled')),
+  started_at  timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE daily_audit_logs (
+CREATE TABLE IF NOT EXISTS public.radar_audit_logs (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     uuid NOT NULL REFERENCES profiles(id),
-  entity_type varchar NOT NULL,
+  user_email  text NOT NULL REFERENCES public.radar_users(email),
+  entity_type text NOT NULL,
   entity_id   uuid NOT NULL,
-  action      varchar NOT NULL,
+  action      text NOT NULL,
   before      jsonb,
   after       jsonb,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.radar_sessions   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.radar_audit_logs ENABLE ROW LEVEL SECURITY;
 ```
 
-#### New tables (v2 — GitHub)
+#### v2 — GitHub
 
 ```sql
-CREATE TABLE daily_pull_requests (
+CREATE TABLE IF NOT EXISTS public.radar_pull_requests (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_id    uuid NOT NULL REFERENCES daily_games(id) ON DELETE CASCADE,
-  stage      daily_game_stage,
+  game_id    uuid NOT NULL REFERENCES public.radar_games(id) ON DELETE CASCADE,
+  stage      text,
   github_url text NOT NULL,
-  repo       varchar,
+  repo       text,
   pr_number  integer,
-  title      varchar,
-  status     varchar,
-  author     varchar,
+  title      text,
+  status     text,
+  author     text,
   merged_at  timestamptz,
   summary    text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-```
 
-#### RLS helper functions (`private` schema — same pattern as existing)
-
-```sql
--- Derives daily_role for current user
-CREATE OR REPLACE FUNCTION private.daily_role()
-RETURNS daily_role LANGUAGE sql SECURITY DEFINER SET search_path = ''
-AS $$
-  SELECT COALESCE(
-    p.daily_role,
-    CASE p.role
-      WHEN 'super_admin' THEN 'admin'::daily_role
-      WHEN 'pm'          THEN 'manager'::daily_role
-      ELSE                    'developer'::daily_role
-    END
-  )
-  FROM public.profiles p WHERE p.id = auth.uid()
-$$;
-GRANT EXECUTE ON FUNCTION private.daily_role() TO authenticated;
-
-CREATE OR REPLACE FUNCTION private.is_daily_manager()
-RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path = ''
-AS $$ SELECT private.daily_role() IN ('admin', 'manager') $$;
-GRANT EXECUTE ON FUNCTION private.is_daily_manager() TO authenticated;
-
-CREATE OR REPLACE FUNCTION private.is_daily_admin()
-RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path = ''
-AS $$ SELECT private.daily_role() = 'admin' $$;
-GRANT EXECUTE ON FUNCTION private.is_daily_admin() TO authenticated;
+ALTER TABLE public.radar_pull_requests ENABLE ROW LEVEL SECURITY;
 ```
 
 ---
@@ -326,119 +291,126 @@ Three axes — **never conflate**:
 
 | Axis | Source | Examples |
 |---|---|---|
-| **Role** | `private.daily_role()` — derived from `profiles.role` or override | developer / manager / admin |
-| **Assignment** | `daily_games.developer_id = auth.uid()` | owns this specific game |
-| **Session** | Daily Host — whoever called "Start Daily" | controls Daily Mode navigation |
+| **Role** | `radar_users.role` | developer / manager / admin |
+| **Assignment** | `radar_games.developer_email = currentUserEmail` | owns this specific game |
+| **Session** | Daily Host — whoever called "Start Daily" in Daily Mode | controls meeting navigation |
 
 ### What each role can do
 
 | Action | Developer | Manager | Admin |
 |---|---|---|---|
-| Write Daily Note (own games) | ✓ | ✓ | ✓ |
-| Write Daily Note (any game) | ✗ | ✓ | ✓ |
+| Write Note (own games) | ✓ | ✓ | ✓ |
+| Write Note (any game) | ✗ | ✓ | ✓ |
 | Create Change Request | ✓ | ✓ | ✓ |
 | Approve / Reject Change Request | ✗ | ✓ | ✓ |
 | Edit protected game fields directly | ✗ | ✓ | ✓ |
 | Link PR to own game | ✓ | ✓ | ✓ |
 | Link PR to any game | ✗ | ✓ | ✓ |
 | Create / edit games | ✗ | ✓ | ✓ |
-| Manage users / daily_role overrides | ✗ | ✗ | ✓ |
+| Manage users / roles | ✗ | ✗ | ✓ |
 | Start Daily Mode session | ✓ (any) | ✓ | ✓ |
-| Control Daily navigation | Host only | Host only | Host only |
+| Control Daily navigation | Daily Host only | Daily Host only | Daily Host only |
 
 **Daily Host** gets **zero** permission elevation — navigation control only.
 
 ### Protected game fields
 
-Direct edit requires `is_daily_manager()`. Developers submit Change Requests instead:
-- `title`, `client`, `developer_id`, `math_owner_id`, `current_stage`, `status`
+Direct edit requires `isRadarManager()`. Developers submit Change Requests instead:
+- `title`, `client`, `developer_email`, `math_owner_id`, `current_stage`, `status`
 
 ---
 
 ## 9. Code Structure
 
-Follows gc-pm-automation's **flat convention** (no `server/services/repositories/` layering):
+`gc-games-dashboard` uses `src/`. All BE Radar files are additive:
 
 ```
-app/
-  daily/
-    page.tsx                      # redirect → /daily/today
-    today/
-      page.tsx                    # Server Component: requireDailyProfile, fetch, render
-      actions.ts                  # Server Actions: saveNote, flagAttention
-    games/
-      page.tsx                    # Games list (was radar)
-      [id]/
-        page.tsx                  # Game Page
-        actions.ts                # suggestChange, editStageDates, addNote
-    change-requests/
-      page.tsx                    # CR list + approve/reject
-      actions.ts
-    mode/
-      page.tsx                    # Daily Mode (v1.5)
-      DailyModeClient.tsx         # client component for live state
+src/
+  app/
+    radar/
+      layout.tsx                    # Shared BE Radar nav
+      page.tsx                      # redirect → /radar/today
+      today/
+        page.tsx                    # Server Component: requireRadarProfile, fetch, render
+        TodayWorkClient.tsx
+        actions.ts                  # saveNote, flagAttention
+      games/
+        page.tsx                    # Games list
+        [id]/
+          page.tsx                  # Game Page
+          GameDetailClient.tsx
+          NoteButtonClient.tsx
+          actions.ts                # suggestChange, editStageDates, addNote
+      change-requests/
+        page.tsx                    # CR list + approve/reject
+        CrActionsClient.tsx
+        actions.ts
+      mode/
+        page.tsx                    # Daily Mode (v1.5)
+        DailyModeClient.tsx
+    api/radar/
+      seed/route.ts                 # POST — seed demo data
 
-lib/
-  daily/
-    auth.ts                       # requireDailyProfile, requireDailyManager, requireDailyAdmin
-    roles.ts                      # daily_role derivation (TS mirror of SQL helper)
-    games.ts                      # getGames, getGame, getActiveGames
-    notes.ts                      # getNotes, createNote
-    change-requests.ts            # getCRs, approveCR, rejectCR
+  lib/radar/
+    types.ts                        # All TS types, stage/status labels
+    auth.ts                         # requireRadarProfile, requireRadarManager, requireRadarAdmin
+    roles.ts                        # getRadarRole(), isRadarManager(), isRadarAdmin()
+    users.ts                        # getCurrentRadarUser() — upserts radar_users on sign-in
+    games.ts                        # getGames, getGame, getActiveGames, createGame
+    notes.ts                        # getNotes, createNote
+    change-requests.ts              # getCRs, approveCR, rejectCR
+
+supabase/migrations/
+  0003_radar.sql                    # radar_users + all radar_* tables
 ```
-
-All `daily_*` Server Actions follow the same `actions.ts` colocation pattern as existing gc-pm-automation pages.
 
 ---
 
 ## 10. v1 Implementation Checklist
 
-> **Do not start until owner signals go.** This is the reference list.
+> Say "газ" to begin. This is the reference list.
 
 ### Database
-- [ ] Migration `0005_daily_tool.sql`: enums, `profiles.daily_role` column, v1 tables, RLS helpers
-- [ ] RLS policies on all new tables
-- [ ] Regenerate `lib/database.types.ts`
+- [ ] Migration `0003_radar.sql`: `radar_users` + all v1 tables + RLS enable
+- [ ] Apply to Supabase `hstvuhqqbhzsgkzvgntm`
 - [ ] Seed test data (2-3 games, notes, CRs)
 
-### Core library
-- [ ] `lib/daily/auth.ts` — `requireDailyProfile`, `requireDailyManager`, `requireDailyAdmin`
-- [ ] `lib/daily/roles.ts` — `getDailyRole(profile)` TS function
-- [ ] `lib/daily/games.ts` — CRUD for `daily_games`, `daily_game_stage_dates`
-- [ ] `lib/daily/notes.ts` — create/list notes
-- [ ] `lib/daily/change-requests.ts` — create/list/approve/reject
+### Core library (`src/lib/radar/`)
+- [ ] `auth.ts` — `requireRadarProfile`, `requireRadarManager`, `requireRadarAdmin`
+- [ ] `roles.ts` — `getRadarRole()`, `isRadarManager()`, `isRadarAdmin()`
+- [ ] `users.ts` — `getCurrentRadarUser()` (upsert on sign-in)
+- [ ] `games.ts` — CRUD for `radar_games`, `radar_game_stage_dates`
+- [ ] `notes.ts` — create/list notes
+- [ ] `change-requests.ts` — create/list/approve/reject
 
-### AppShell nav update
-- [ ] Update `app/ui/AppShell.tsx` — nav item label/icon for Daily entry; consider sub-nav for Daily screens
+### Layout
+- [ ] `src/app/radar/layout.tsx` — shared BE Radar nav (links to Today, Games, Change Requests, Daily Mode)
 
 ### Screens (v1)
-- [ ] `/daily/today` — Today's Work page
-- [ ] Write Note modal component
-- [ ] `/daily/games` — Games list
-- [ ] `/daily/games/:id` — Game Page (without PR panel — v2)
-- [ ] `/daily/change-requests` — CR list + approve/reject actions
+- [ ] `/radar/today` — Today's Work
+- [ ] Write Note modal
+- [ ] `/radar/games` — Games list
+- [ ] `/radar/games/:id` — Game Page (without PR panel — v2)
+- [ ] `/radar/change-requests` — CR list + approve/reject actions
 
 ### v1.5 (Daily Mode — separate milestone)
 - [ ] Redis setup
-- [ ] `daily_sessions` + `daily_audit_logs` migration
-- [ ] `/daily/mode` — Daily Mode client component (real-time)
+- [ ] `radar_sessions` + `radar_audit_logs` migration
+- [ ] `/radar/mode` — Daily Mode client component (real-time)
 
 ### v2 (GitHub — separate milestone)
-- [ ] `daily_pull_requests` migration
+- [ ] `radar_pull_requests` migration
 - [ ] GitHub webhook handler
 - [ ] PR block on Game Page
 
 ---
 
-## 11. Open Questions (Pre-Implementation)
+## 11. Open Questions
 
-- [ ] **Table prefix final decision:** keep `daily_` or switch to `ber_`? → Recommend `daily_`
-- [ ] **AppShell sidebar sub-nav:** does "Daily" expand to sub-items (Today, Games, Change Requests) or stay as a top-level entry that lands on `/daily/today`?
-- [ ] **Change Request auto-apply:** when a CR is approved, does the system automatically update `daily_games` field, or does manager manually apply?
-- [ ] **Approved CR → auto-apply:** prefer yes (simpler UX) — `approved` action runs UPDATE in same Server Action
+- [ ] **Approved CR → auto-apply:** when a CR is approved, system automatically updates `radar_games` field in same Server Action (prefer yes — simpler UX)
 - [ ] **Games screen visibility:** all games for all users, or only games user is assigned to (for Developer role)?
-- [ ] **"+ New Game" access:** manager/admin only, or any user can create a game (developer would own it)?
+- [ ] **"+ New Game" access:** manager/admin only?
 - [ ] **Daily Mode v1 scope:** is a non-real-time simplified Daily Mode acceptable for v1, or is Redis required from day one?
-- [ ] **PR panel on Game Page:** hide entirely until v2 or show empty state with "Coming soon"?
+- [ ] **PR panel on Game Page:** hide entirely until v2 or show empty state?
 - [ ] **Notes:** one per day per game, or unlimited?
-- [ ] **Math Owner:** is `daily_math_owners` a simple name-only table or should it eventually link to `profiles`?
+- [ ] **Math Owner:** is `radar_math_owners` a simple name-only table or should it eventually link to `radar_users`?

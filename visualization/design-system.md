@@ -81,7 +81,7 @@ gc-games-dashboard has **no sidebar, no persistent nav**. Pages are centered con
 <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
 ```
 
-**For BE Radar integration:** a shared layout must be added — either a top nav bar or left sidebar — scoped to `/daily/*` routes via `src/app/daily/layout.tsx`.
+**For BE Radar integration:** a shared layout must be added — either a top nav bar or left sidebar — scoped to `/radar/*` routes via `src/app/radar/layout.tsx`.
 
 Recommended approach: **top nav bar** (fits the existing aesthetic better than a sidebar — gc-games-dashboard is content-first, no chrome-heavy sidebar).
 

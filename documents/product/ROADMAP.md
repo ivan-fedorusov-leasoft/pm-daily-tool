@@ -10,9 +10,9 @@
 
 ### Features
 
-- Today's Work (`/daily/today`)
-- Game Page (`/daily/games/:id`)
-- Games list (`/daily/games`)
+- Today's Work (`/radar/today`)
+- Game Page (`/radar/games/:id`)
+- Games list (`/radar/games`)
 - Manual Daily Notes
 - Change Requests
 - Stage Management
@@ -20,9 +20,9 @@
 
 ### v1 integration tasks
 
-1. Write `supabase/migrations/0003_daily_tool.sql`
-2. Port `src/lib/daily/*` — email-based identity (`daily_users`)
-3. Add `src/app/daily/layout.tsx` — shared nav
+1. Write `supabase/migrations/0003_radar_tool.sql`
+2. Port `src/lib/radar/*` — email-based identity (`radar_users`)
+3. Add `src/app/radar/layout.tsx` — shared nav
 4. Port all page components
 5. Apply migration to Supabase `hstvuhqqbhzsgkzvgntm`
 6. Seed demo data

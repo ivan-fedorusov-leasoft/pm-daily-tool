@@ -1,9 +1,9 @@
 # Frontend Spec — Game Page (Individual Game)
 
 > Source: `game page.png`  
-> App: **BE Radar** (inside gc-pm-automation)  
-> Route: `/daily/games/:id`  
-> Design system: see [design-system.md](../design-system.md)
+> App: **BE Radar** (inside gc-games-dashboard)  
+> Route: `/radar/games/:id`  
+> Design system: see [design-system.md](../design-system.md) — tokens from `gc-games-dashboard/src/app/globals.css`, raw Tailwind
 
 ---
 
@@ -109,7 +109,7 @@ Stages                    ✏
 **Stage name:** `text-sm font-medium text-[var(--color-text)]` (current: accent color + semibold)  
 **Date range:** `text-xs text-[var(--color-muted)]`
 
-**Stages list (from `daily_game_stage` enum):**
+**Stages list (from `radar_game_stage` enum):**
 1. Start Date
 2. Playable
 3. Alpha
@@ -203,8 +203,9 @@ Ad Free Reward Gems       [Declined]          >
 ## Component List
 
 ```
-<AppShell user={profile}>
-  <Breadcrumb items={[{label:"Today", href:"/daily/today"}, {label:game.title}]} />
+// src/app/radar/games/[id]/page.tsx
+<RadarLayout user={user}>
+  <Breadcrumb items={[{label:"Today", href:"/radar/today"}, {label:game.title}]} />
 
   <Card className="p-6 mb-5 animate-in">
     <div className="flex gap-4 items-start">
@@ -235,14 +236,14 @@ Ad Free Reward Gems       [Declined]          >
       <ChangeRequestsPanel requests={game.changeRequests} />
     </div>
   </div>
-</AppShell>
+</RadarLayout>
 ```
 
 ---
 
 ## Open Questions / TBD
 
-- [ ] `✏ Suggest Changes` — opens Change Request creation modal or `/daily/change-requests/new?game=id`?
+- [ ] `✏ Suggest Changes` — opens Change Request creation modal or `/radar/change-requests/new?game=id`?
 - [ ] `···` menu — edit game, archive, manage stage dates?
 - [ ] Stages edit `✏` — date picker per stage or bulk edit modal?
 - [ ] Warning flag on note `⚠` — does clicking navigate to Team Lead view?

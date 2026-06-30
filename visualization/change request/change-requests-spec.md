@@ -1,10 +1,10 @@
 # Frontend Spec — Change Requests Screen
 
 > Source: `change requests to game info.png`  
-> App: **BE Radar** (inside gc-pm-automation)  
-> Route: `/daily/change-requests`  
-> Navigation: sidebar → "Change Requests" (active)  
-> Design system: see [design-system.md](../design-system.md)
+> App: **BE Radar** (inside gc-games-dashboard)  
+> Route: `/radar/change-requests`  
+> Navigation: radar layout → "Change Requests" (active)  
+> Design system: see [design-system.md](../design-system.md) — tokens from `gc-games-dashboard/src/app/globals.css`, raw Tailwind
 
 ---
 
@@ -197,7 +197,8 @@ Showing 1 to 8 of 18 requests    < [1] [2] [3] >    Rows per page: 10 ▾
 ## Component List
 
 ```
-<AppShell user={profile}>
+// src/app/radar/change-requests/page.tsx
+<RadarLayout user={user}>
   <div className="flex items-start justify-between mb-5">
     <PageTitle title="Change Requests" />
     <Button variant="primary">+ New Request</Button>
@@ -227,16 +228,16 @@ Showing 1 to 8 of 18 requests    < [1] [2] [3] >    Rows per page: 10 ▾
     </Table>
     <Pagination total={18} page={1} perPage={10} />
   </Card>
-</AppShell>
+</RadarLayout>
 ```
 
 ---
 
 ## Open Questions / TBD
 
-- [ ] Clicking `>` chevron — opens side panel detail or navigates to `/daily/change-requests/:id`?
+- [ ] Clicking `>` chevron — opens side panel detail or navigates to `/radar/change-requests/:id`?
 - [ ] `+ New Request` — who can create? Only developer for their own games, or anyone?
-- [ ] "All Fields" filter options — derived from `daily_change_requests.field_name` distinct values?
+- [ ] "All Fields" filter options — derived from `radar_change_requests.field_name` distinct values?
 - [ ] Inline approve/decline — confirmation tooltip/popover before committing?
-- [ ] Approved requests — auto-applied to `daily_games` fields or requires manual step?
+- [ ] Approved requests — auto-applied to `radar_games` fields or requires manual step?
 - [ ] `math_owner_id` field rows — should show resolved names in Old/New Value columns

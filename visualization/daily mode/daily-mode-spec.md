@@ -1,10 +1,10 @@
 # Frontend Spec — Daily Mode Screen
 
 > Source: `daily mode.png`  
-> App: **BE Radar** (inside gc-pm-automation)  
-> Route: `/daily/mode`  
+> App: **BE Radar** (inside gc-games-dashboard)  
+> Route: `/radar/mode`  
 > Feature version: v1.5 (requires Redis for live sync; v1 can be a basic non-real-time version)  
-> Design system: see [design-system.md](../design-system.md)
+> Design system: see [design-system.md](../design-system.md) — tokens from `gc-games-dashboard/src/app/globals.css`, raw Tailwind
 
 ---
 
@@ -275,7 +275,8 @@ View all activity →
 ## Component List
 
 ```
-<AppShell user={profile}>
+// src/app/radar/mode/page.tsx
+<RadarLayout user={user}>
   <div className="flex gap-0 -mx-5 md:-mx-10">   {/* break out of max-w-5xl padding */}
 
     <GamesSidePanel
@@ -311,7 +312,7 @@ View all activity →
       />
     </div>
   </div>
-</AppShell>
+</RadarLayout>
 ```
 
 ---
@@ -320,9 +321,9 @@ View all activity →
 
 - [ ] "Transfer Daily Host" — any user or only current host?
 - [ ] `✏` date edit on stage — inline date picker or modal? Manager/admin only
-- [ ] "Complete Stage" — confirmation before moving? Writes to `daily_stage_history`
+- [ ] "Complete Stage" — confirmation before moving? Writes to `radar_stage_history`
 - [ ] `↗` expand on Today's Note — opens Write Note modal (`write-note-modal-spec.md`)?
 - [ ] Activity feed — real-time via Redis (v1.5) or polled?
 - [ ] v1 Daily Mode — non-real-time static version acceptable?
-- [ ] "Finish Daily" — writes `daily_sessions.finished_at` + status = finished
+- [ ] "Finish Daily" — writes `radar_sessions.finished_at` + status = finished
 - [ ] Game order in side panel — alphabetical, or by some priority?

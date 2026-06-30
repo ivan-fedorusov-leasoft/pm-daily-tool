@@ -1,16 +1,16 @@
 # Frontend Spec — Games Screen
 
 > Source: `games (radar).png`  
-> App: **BE Radar** (inside gc-pm-automation)  
-> Route: `/daily/games` (was `/daily/radar` — renamed per design, see vault)  
-> Navigation: sidebar → "Games" (active)  
-> Design system: see [design-system.md](../design-system.md)
+> App: **BE Radar** (inside gc-games-dashboard)  
+> Route: `/radar/games`  
+> Navigation: radar layout → "Games" (active)  
+> Design system: see [design-system.md](../design-system.md) — tokens from `gc-games-dashboard/src/app/globals.css`, raw Tailwind
 
 ---
 
 ## Naming note
 
-The screen was previously called **"Simple Radar"** in the product docs. The visualisation and this spec use the name **"Games"**. Vault updated accordingly. The route changes from `/daily/radar` to `/daily/games`.
+The screen was previously called **"Simple Radar"** in the product docs. The visualisation and this spec use the name **"Games"**. Route: `/radar/games`.
 
 ---
 
@@ -204,7 +204,8 @@ CHANGE REQUESTS
 ## Component List
 
 ```
-<AppShell user={profile}>
+// src/app/radar/games/page.tsx
+<RadarLayout user={user}>
   <div className="flex items-start justify-between mb-4">
     <PageTitle title="Games" />
     <Button variant="primary">+ New Game</Button>
@@ -220,7 +221,7 @@ CHANGE REQUESTS
   <div className="grid gap-3">
     {games.map(g => (
       <Card key={g.id} className="animate-in cursor-pointer hover:border-[var(--color-border-strong)]"
-            onClick={() => navigate(`/daily/games/${g.id}`)}>
+            onClick={() => navigate(`/radar/games/${g.id}`)}>
         <GameIdentityCell />
         <StagesTimelineCell />
         <TodaysNoteCell />
@@ -230,7 +231,7 @@ CHANGE REQUESTS
       </Card>
     ))}
   </div>
-</AppShell>
+</RadarLayout>
 ```
 
 ---
@@ -246,9 +247,9 @@ CHANGE REQUESTS
 ## Open Questions / TBD
 
 - [ ] Grid view `⊞` — card grid layout TBD
-- [ ] Stage names — fixed enum (`daily_game_stage`) or per-game configurable?
-- [ ] "Updated X ago" — based on `daily_games.updated_at`?
+- [ ] Stage names — fixed enum (`radar_game_stage`) or per-game configurable?
+- [ ] "Updated X ago" — based on `radar_games.updated_at`?
 - [ ] Clicking PR/CR cell — navigates to game page filtered to that tab, or separate route?
 - [ ] Search — client-side filter or server-side?
-- [ ] "+ New Game" — only manager/admin (`is_daily_manager()`)?
+- [ ] "+ New Game" — only manager/admin (`isRadarManager()`)?
 - [ ] On Hold current-node color: `--color-err` or `--color-warn`?

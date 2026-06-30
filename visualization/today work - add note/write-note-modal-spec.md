@@ -1,7 +1,7 @@
 # Frontend Spec — Write Note Modal
 
 > Source: `today work - write note.png`  
-> App: **BE Radar** (inside gc-pm-automation)  
+> App: **BE Radar** (inside gc-games-dashboard)  
 > Trigger: "Write Status" button on any game card in Today's Work  
 > Design system: see [design-system.md](../design-system.md)
 
@@ -228,7 +228,7 @@ Note
 </Modal>
 ```
 
-**On save:** creates a new `daily_notes` row:
+**On save:** creates a new `radar_notes` row:
 ```
 {
   game_id: game.id,

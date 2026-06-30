@@ -83,9 +83,9 @@ Do not mix these concepts.
 - Single Next.js fullstack monolith — the existing `gc-games-dashboard` app (Next.js 16, `src/` layout).
 - PostgreSQL is the source of truth — Supabase project `hstvuhqqbhzsgkzvgntm` backing `gc-games-dashboard`.
 - No ORM. Use `@supabase/supabase-js` service role, raw `.from().select()`, matching the host app's pattern.
-- Identity: new `daily_users` table keyed by email (from NextAuth session) — no `profiles` table in host.
+- Identity: new `radar_users` table keyed by email (from NextAuth session) — no `profiles` table in host.
 - Auth: NextAuth v5 (Google SSO) — no Supabase Auth.
-- Every new table uses a `daily_` prefix.
+- Every new table uses a `radar_` prefix.
 - Redis stores runtime state only (v1.5+).
 - BullMQ is used only for background jobs (v2+).
 - GitHub integration starts in v2.
@@ -100,7 +100,7 @@ Use these files when working with Claude or another implementation AI:
 - `claude/CLAUDE.md` — general behavior rules for implementation.
 - `claude/TASK_TEMPLATE.md` — template for scoped implementation tasks.
 - `claude/EXISTING_APP_INTEGRATION_AUDIT_PROMPT.md` — the audit prompt that was used to plan the integration.
-- `claude/INTEGRATION_AUDIT.md` — the resulting integration plan. Canonical reference for how Daily Tool fits inside `gc-pm-automation`.
+- `claude/INTEGRATION_AUDIT.md` — ⚠ SUPERSEDED by ADR-007. Historical audit of gc-pm-automation integration; for reference only.
 
 ---
 
